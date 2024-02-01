@@ -10,4 +10,5 @@ In our code, we use group lasso regularization. The group lasso is a type of spa
 Generally, to derive the subsurface magnetic and gravity structure, the subsurface space is divided into small grid cells, and the magnetization and density are assigned to each cell, and tried to estimate these parameters to recover the observed anomalies. In this code, the magnetization and density of each cell are grouped and a group lasso is applied. Thus, the magnetization and density of each cell together take on a zero or non-zero value. As a result, the magnetization and density structure become similar, and a highly correlated model is expected to be derived.
 
 ### 2. group lasso
-Now, denote the subsurface magnetization as $\mathbf{\beta}$, and density as $\boldsymbol{\rho}$.
+Now, denote the subsurface magnetization as $\boldsymbol{\beta}$, density as $\boldsymbol{\rho}$,
+and observed magnetic and gravity as $\mathbf{f}$ and $\mathbf{g}$, respecively.
