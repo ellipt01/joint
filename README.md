@@ -8,3 +8,6 @@ This code performs the inversion using magnetic and gravity anomaly data jointly
 In our code, we use group lasso regularization. The group lasso is a type of sparse regularization method that achieves variable selection based on the groups of model elements. This method can be used when model elements have inherent groups or clusters, and the model elements of each group together take zero or non-zero values by this regularization.
 %
 Generally, to derive the subsurface magnetic and gravity structure, the subsurface space is divided into small grid cells, and the magnetization and density are assigned to each cell, and tried to estimate these parameters to recover the observed anomalies. In this code, the magnetization and density of each cell are grouped and a group lasso is applied. Thus, the magnetization and density of each cell together take on a zero or non-zero value. As a result, the magnetization and density structure become similar, and a highly correlated model is expected to be derived.
+
+### 2. group lasso
+Now, denote the subsurface magnetization as $\mathbf{\beta}$, and density as $\boldsymbol{\rho}$.
