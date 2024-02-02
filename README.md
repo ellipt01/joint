@@ -50,11 +50,11 @@ Thus, the problem treated by this code is a mixed $L_2$ and group lasso regulari
 
     USAGE: jinv
            -f <magnetic anomaly filename>
-	   -g <gravitic anomaly filename>
-	   -l <log10(lambda)>
-	   -a <alpha>
+           -g <gravitic anomaly filename>
+           -l <log10(lambda)>
+           -a <alpha>
     [optional]
-          -t <terrain file><br>
+           -t <terrain file>
       -p <parameter filename:default is settings.par><br>
       -x (output kernel matrices)<br>
 ###       -h (show this message)<br>
