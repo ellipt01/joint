@@ -62,7 +62,7 @@ The format of magnetic and gravity anomaly data is
 
     xobs(km)  yobs(km)  zobs(km)  anomaly(A/m or mgal)
 The "terrain file" specified by the -t option is the gridded terrain elevation file. The format is
-          x(km)  y(km)  z(elevation, km)
+    x(km)  y(km)  z(elevation, km)
 The terrain grid must be the same as the subsurface space specified in the settings file described below.
     
 The output is
