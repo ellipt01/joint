@@ -44,3 +44,5 @@ where $\mathbf{K}$ and $\mathbf{G}$ are the kernel matrix for magnetic and gravi
 The function $P(\boldsymbol{\beta},\boldsymbol{\rho})$ is the following penalty function of group lasso:
 $$\displaystyle
 P(\boldsymbol{\beta},\boldsymbol{\rho})=\sum_{j=1}^M\sqrt{\beta_j^2+\rho_j^2}.$$
+Thus, the problem that treat this code is a $L_2$ and group lasso mixed regularized inversion for the magnetic and gravity field,
+and the parameter $\alpha$ controlls the mixing ratio of these regularizations.
