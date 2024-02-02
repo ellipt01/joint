@@ -50,7 +50,8 @@ Thus, the problem treated by this code is a mixed $L_2$ and group lasso regulari
 
 ### USAGE: jinv
 
-        ###-f \<magnetic anomaly filename\><br>
+        -f \<magnetic anomaly filename\>
+	
 	-g \<gravitic anomaly filename\><br>
 	-l \<log10(lambda)\><br>
 	-a \<alpha\><br>
