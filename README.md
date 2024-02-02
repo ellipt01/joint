@@ -58,9 +58,10 @@ Thus, the problem treated by this code is a mixed $L_2$ and group lasso regulari
            -p <parameter filename:default is settings.par>
            -x (output kernel matrices)
            -h (show this message)
-The output is<br>
-model.data: derived model. format is x  y  z  beta  rho<br>
-recover_mag.data: recovered magnetic anomaly<br>
-recover_rho.data: recovered gravity anomaly<br>
+The output is
+
+    model.data: derived model. format is x  y  z  beta  rho<br>
+    recover_mag.data: recovered magnetic anomaly<br>
+    recover_rho.data: recovered gravity anomaly<br>
 
 
