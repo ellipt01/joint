@@ -27,8 +27,7 @@ Generally, to derive the subsurface magnetic and gravity structure, the subsurfa
 ### 2. group lasso
 Now, denote the subsurface magnetization distribution as $\boldsymbol{\beta}$, that of density as $\boldsymbol{\rho}$, and observed magnetic and gravity anomalies as $\mathbf{f}$ and $\mathbf{g}$, respecively.
 The objective function tobe minimized is
-\begin{equation}
-\displaystyle
+$$\displaystyle
 L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda, \alpha)=
 \frac{1}{2}\left\|
 	\mathbf{f}-\mathbf{K}\cdot\boldsymbol{\beta}
@@ -40,8 +39,7 @@ L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda, \alpha)=
 	\frac{1}{2}\left\|\boldsymbol{\beta}\right\|^2
 	+\frac{1}{2}\left\|\boldsymbol{\rho}\right\|^2
  \right)
-+\lambda(1-\alpha)P(\boldsymbol{\beta},\boldsymbol{\rho}),
-\end{equation}
++\lambda(1-\alpha)P(\boldsymbol{\beta},\boldsymbol{\rho}),$$
 where $\mathbf{K}$ and $\mathbf{G}$ are the kernel matrix for magnetic and gravity anomaly, respectively.
 The function $P(\boldsymbol{\beta},\boldsymbol{\rho})$ is the following penalty function of group lasso:
 $$\displaystyle
