@@ -41,7 +41,7 @@ L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda, \alpha)=
  \right)
 +\lambda(1-\alpha)P_{group}(\boldsymbol{\beta},\boldsymbol{\rho}),$$
 where $\mathbf{K}$ and $\mathbf{G}$ are the kernel matrix for magnetic and gravity anomaly, respectively.
-The function $P(\boldsymbol{\beta},\boldsymbol{\rho})$ is the following penalty function of group lasso:
+The function $P_{group}(\boldsymbol{\beta},\boldsymbol{\rho})$ is the following penalty function of group lasso:
 $$\displaystyle
 P_{group}(\boldsymbol{\beta},\boldsymbol{\rho})=\sum_{j=1}^M\sqrt{\beta_j^2+\rho_j^2}.$$
 Thus, the problem treated by this code is a mixed $L_2$ and group lasso regularized inversion for the magnetic and gravity fields, and $\alpha$ controls the mixing ratio of these two regularizations.
