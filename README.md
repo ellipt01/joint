@@ -70,8 +70,8 @@ The file specified by the -p option is the settings file for the joint inversion
     2. area of analysis: west-edgeg, east-edge, south-edge, north-edge, z-top, z-bottom (km)
     3. altitude of observations: zobs (km)
     4. magnetic inclination and declination (degree): inc, dec
-    5. penaltyn parameter: mu
-    6. lower bounds: penaltyn parameter nu, magnetization lower, density lower
+    5. penaltyn parameter: $\mu$
+    6. lower bounds: penalty parameter $\nu$, magnetization lower, density lower
 
 The format of the settings file is
 
