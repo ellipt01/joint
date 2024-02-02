@@ -85,6 +85,9 @@ The format of the settings file is
     5. mu:			1.0
     6. nu, beta0, rho0:	1.0, 0., 0.
 
+In the case of the above example, subsurface space $x\in$ [-2., 2.(km)], $y\in$ [-2., 2.(km)]
+
+
 The "terrain file" specified by the -t option is the terrain elevation file. The format is x(km)  y(km)  z(elevation, km).
 
 
