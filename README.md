@@ -48,9 +48,9 @@ Thus, the problem treated by this code is a mixed $L_2$ and group lasso regulari
 
 ## 3. usage of jinv, $L_2$-group lasso regularized inversion program
 
-        ### USAGE: jinv
+    USAGE: jinv
 
-        -f \<magnetic anomaly filename\>
+           -f \<magnetic anomaly filename\>
 	
 	-g \<gravitic anomaly filename\><br>
 	-l \<log10(lambda)\><br>
