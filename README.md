@@ -73,6 +73,14 @@ The file specified by the -p option is the parameter setting file for the joint 
     5. penaltyn parameter: mu
     6. inversion parameters: tolerance, num. of maxiter
 
+    ex.
+    1. nx, ny, nz:		50, 50, 25
+    2. x, y, zrange (km):	-2., 2., -2., 2., 0., -2.
+    3. exf_inc, exf_dec, mgz_inc, mgz_dec(deg.):	45., -7., 45., -7.
+    4. tol, maxiter:	1.e-5, 100000
+    5. mu:			1.0
+    6. nu, beta0, rho0:	1.0, 0., 0.
+
 The "terrain file" specified by the -t option is the terrain elevation file. The format is x(km)  y(km)  z(elevation, km).
 
 
