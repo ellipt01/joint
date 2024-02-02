@@ -48,13 +48,13 @@ Thus, the problem treated by this code is a mixed $L_2$ and group lasso regulari
 
 ## 3. usage of jinv, $L_2$-group lasso regularized inversion program
 
-    USAGE: jinv
+###    USAGE: jinv
            -f <magnetic anomaly filename>
            -g <gravitic anomaly filename>
            -l <log10(lambda)>
            -a <alpha>
     [optional]
            -t <terrain file>
-      -p <parameter filename:default is settings.par><br>
-      -x (output kernel matrices)<br>
-###       -h (show this message)<br>
+           -p <parameter filename:default is settings.par><br>
+           -x (output kernel matrices)<br>
+           -h (show this message)<br>
