@@ -64,7 +64,7 @@ The output is
     recover_mag.data: recovered magnetic anomaly
     recover_rho.data: recovered gravity anomaly
 
-The file specified by the -p option is the parameter setting file for the joint inversion, which must contain the following 6 fields:
+The file specified by the -p option is the settings file for the joint inversion, which must contain the following 6 fields:
 
     1. number of grid cells: nx, ny, nz
     2. area of analysis: xleft, xright, yleft, yright, ztop, zbottom (km)
@@ -80,6 +80,11 @@ The file specified by the -p option is the parameter setting file for the joint 
     4. tol, maxiter:	1.e-5, 100000
     5. mu:			1.0
     6. nu, beta0, rho0:	1.0, 0., 0.
+
+The format of the settings file is
+
+    identifier(1-6). explanations:	VALUES, VALUES,...
+
 
 The "terrain file" specified by the -t option is the terrain elevation file. The format is x(km)  y(km)  z(elevation, km).
 
