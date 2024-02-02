@@ -34,4 +34,5 @@ L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda, \alpha)=
 \right\|^2
 +\frac{1}{2}\left\|
 	\mathbf{f}-\mathbf{K}\cdot\boldsymbol{\beta}
-\right\|^2$$
+\right\|^2
++\lambda\alpha\left\|\boldsymbol{\beta}\right\|^2$$
