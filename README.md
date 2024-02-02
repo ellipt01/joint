@@ -58,5 +58,5 @@ Thus, the problem treated by this code is a mixed $L_2$ and group lasso regulari
            -p <parameter filename:default is settings.par>
            -x (output kernel matrices)
            -h (show this message)
-
-This
+The output is
+model.data: derived model. format is x  y  z  beta  rho.
