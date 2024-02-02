@@ -33,10 +33,14 @@ L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda, \alpha)=
 	\mathbf{f}-\mathbf{K}\cdot\boldsymbol{\beta}
 \right\|^2
 +\frac{1}{2}\left\|
-	\mathbf{f}-\mathbf{K}\cdot\boldsymbol{\beta}
+	\mathbf{g}-\mathbf{G}\cdot\boldsymbol{\rho}
 \right\|^2
 +\lambda\alpha\left(
 	\frac{1}{2}\left\|\boldsymbol{\beta}\right\|^2
 	+\frac{1}{2}\left\|\boldsymbol{\rho}\right\|^2
  \right)
-+\lambda(1-\alpha)P(\boldsymbol{\beta},\boldsymbol{\rho})$$
++\lambda(1-\alpha)P(\boldsymbol{\beta},\boldsymbol{\rho}),$$
+where $\mathbf{K}$ and $\mathbf{G}$ are the kernel matrix for magnetic and gravity anomaly, respectively.
+The function $P(\boldsymbol{\beta},\boldsymbol{\rho})$ is the following penalty function of group lasso:
+$$\displaystyle
+P(\boldsymbol{\beta},\boldsymbol{\rho})=\sum_{j=1}^M\sqrt{\beta_j^2+\rho_j^2}.$$
