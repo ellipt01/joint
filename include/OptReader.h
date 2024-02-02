@@ -1,4 +1,4 @@
-class Reader
+class OptReader
 {
 
 	size_t	_nx_;
@@ -32,7 +32,7 @@ class Reader
 	bool	_pparam_specified_;
 
 public:
-	Reader ();
+	OptReader ();
 	void	fread (FILE *stream);
 	void	fwrite (FILE *stream);
 

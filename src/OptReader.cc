@@ -1,10 +1,10 @@
 #include <iostream>
 #include <cstring>
 
-#include "Reader.h"
+#include "OptReader.h"
 
 void
-Reader::_init_ (void)
+OptReader::_init_ (void)
 {
 	_ngrid_specified_ = false;
 	_range_specified_ = false;
@@ -17,13 +17,13 @@ Reader::_init_ (void)
 	_maxiter_ = 10000;
 }
 
-Reader::Reader ()
+OptReader::OptReader ()
 {
 	_init_ ();
 }
 
 void
-Reader::fread (FILE *stream)
+OptReader::fread (FILE *stream)
 {
 	char	buf[BUFSIZ];
 
@@ -70,7 +70,7 @@ Reader::fread (FILE *stream)
 }
 
 void
-Reader::fwrite (FILE *stream)
+OptReader::fwrite (FILE *stream)
 {
 	fprintf (stream, "\n");
 	if (_ngrid_specified_) fprintf (stream, "number of grid:\t%ld/%ld/%ld\n", _nx_, _ny_, _nz_);
@@ -89,7 +89,7 @@ Reader::fwrite (FILE *stream)
 }
 
 void
-Reader::ngrid (size_t *nx, size_t *ny, size_t *nz)
+OptReader::ngrid (size_t *nx, size_t *ny, size_t *nz)
 {
 	if (!_ngrid_specified_) throw std::runtime_error ("ngrid is not specified");
 	if (nx) *nx = _nx_;
@@ -98,7 +98,7 @@ Reader::ngrid (size_t *nx, size_t *ny, size_t *nz)
 }
 
 void
-Reader::range (double x[], double y[], double z[])
+OptReader::range (double x[], double y[], double z[])
 {
 	if (!_range_specified_) throw std::runtime_error ("number of grid is not specified");
 	if (x) {
@@ -116,7 +116,7 @@ Reader::range (double x[], double y[], double z[])
 }
 
 void
-Reader::incdec (double *exf_inc, double *exf_dec, double *mgz_inc, double *mgz_dec)
+OptReader::incdec (double *exf_inc, double *exf_dec, double *mgz_inc, double *mgz_dec)
 {
 	if (!_incdec_specified_)
 		throw std::runtime_error ("inclination and declination are not specified");
@@ -127,14 +127,14 @@ Reader::incdec (double *exf_inc, double *exf_dec, double *mgz_inc, double *mgz_d
 }
 
 void
-Reader::invparams (double *tol, size_t *maxiter)
+OptReader::invparams (double *tol, size_t *maxiter)
 {
 	if (tol) *tol = _tolerance_;
 	if (maxiter) *maxiter = _maxiter_;
 }
 
 void
-Reader::pparam (double *mu)
+OptReader::pparam (double *mu)
 {
 	if (!_pparam_specified_)
 		throw std::runtime_error ("penalty parameter is not specified");
@@ -142,7 +142,7 @@ Reader::pparam (double *mu)
 }
 
 void
-Reader::lower_bound (double *nu, double *beta0, double *rho0)
+OptReader::lower_bound (double *nu, double *beta0, double *rho0)
 {
 	if (!_apply_lower_bound_) return;
 	if (nu) *nu = _nu_;
