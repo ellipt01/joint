@@ -1,9 +1,16 @@
+/*
+ * gravity.c
+ *
+ *  Created on: 2023/10/14
+ *      Author: utsugi
+ */
 #include <stdio.h>
 #include <math.h>
 #include <float.h>
 
-#include <mgcal.h>
-
+#include "../include/vector3d.h"
+#include "private/util.h"
+#include "source.h"
 #include "gravity.h"
 
 #define SIGN(a) ((a) < 0. ? -1. : +1.)

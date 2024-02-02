@@ -1,12 +1,15 @@
+# MGCAL
+# Magnetic and gravitational field calculation library
+
 include ../make.config
 
 DESTLIBDIR	= ../lib
 LIBS		= -lm $(OPENMP_FLG)
 CPPFLAGS	= -I./include
 
-LIBSRC_OBJS	= src/calc.o src/grid.o src/kernel.o src/vector3d.o\
-			  src/data_array.o src/io.o src/mgcal.o src/source.o\
-			  src/private/util.o
+LIBSRC_OBJS	= src/magnetic.o src/gravity.o src/grid.o src/kernel.o\
+			  src/vector3d.o src/data_array.o src/io.o src/mgcal.o\
+			  src/source.o src/private/util.o
 
 all	:		libmgcal
 

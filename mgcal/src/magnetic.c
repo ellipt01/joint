@@ -1,5 +1,5 @@
 /*
- * calc.c
+ * magnetic.c
  *
  *  Created on: 2015/03/14
  *      Author: utsugi
@@ -13,7 +13,7 @@
 #include "../include/vector3d.h"
 #include "private/util.h"
 #include "source.h"
-#include "calc.h"
+#include "magnetic.h"
 
 double scale_factor = 100.;
 

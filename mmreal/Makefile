@@ -1,3 +1,6 @@
+# MMREAL
+# MatrixMarket format sparse real matrix definition and arithmetic library
+
 include ../make.config
 
 DESTLIBDIR	= ../lib
