@@ -47,3 +47,14 @@ P_{group}(\boldsymbol{\beta},\boldsymbol{\rho})=\sum_{j=1}^M\sqrt{\beta_j^2+\rho
 Thus, the problem treated by this code is a mixed $L_2$ and group lasso regularized inversion for the magnetic and gravity fields, and $\alpha$ controls the mixing ratio of these two regularizations.
 
 ## 3. usage of jinv, $L_2$-group lasso regularized inversion program
+
+USAGE: jinv
+       -f <magnetic anomaly filename>
+       -g <gravitic anomaly filename>
+       -l <log10(lambda)>
+       -a <alpha>>
+[optional]
+       -t <terrain file>
+       -p <parameter filename:default is settings.par>
+       -x (output kernel matrices)
+       -h (show this message)
