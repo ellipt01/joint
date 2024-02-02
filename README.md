@@ -14,7 +14,6 @@ Now, denote the subsurface magnetization distribution as $\boldsymbol{\beta}$, t
 The objective function tobe minimized is
 
 $
-\displaystyle
 L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda, \alpha)=
 \frac{1}{2}\left\|
 	\mathbf{f}-\mathbf{K}\cdot\boldsymbol{\beta}
