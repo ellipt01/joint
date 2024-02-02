@@ -85,8 +85,7 @@ The format of the settings file is
     5. mu:			1.0
     6. nu, beta0, rho0:	1.0, 0., 0.
 
-In the case of the above example, subsurface space $x\in$ [-2., 2.(km)], $y\in$ [-2., 2.(km)]
-
+In the case of the above example, the subsurface space $x\in$ [-2., 2. (km)], $y\in$ [-2., 2. (km)], and $z\in$ [-2., 0. (km)] is divided into nx, ny, and nz grid cells, and the magnetization $\beta_j$ and density $\rho_j$ are assigned to each grid cell. nu ($\nu$) is a penalty parameter for the lower-bound constraint, and if zero or a negative value is specidied to nu, the lower-bound constraint is not applied.
 
 The "terrain file" specified by the -t option is the terrain elevation file. The format is x(km)  y(km)  z(elevation, km).
 
