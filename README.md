@@ -35,8 +35,8 @@ L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda, \alpha)=
 +\frac{1}{2}\left\|
 	\mathbf{f}-\mathbf{K}\cdot\boldsymbol{\beta}
 \right\|^2
-+\lambda\alpha\left{
++\lambda\alpha\left(
 	\frac{1}{2}\left\|\boldsymbol{\beta}\right\|^2
 	+\frac{1}{2}\left\|\boldsymbol{\rho}\right\|^2
- \right}
+ \right)
 +\lambda(1-\alpha)P(\boldsymbol{\beta},\boldsymbol{\rho})$$
