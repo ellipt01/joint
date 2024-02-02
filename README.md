@@ -58,7 +58,7 @@ Thus, the problem treated by this code is a mixed $L_2$ and group lasso regulari
            -p <parameter filename:default is settings.par>
            -x (output kernel matrices)
            -h (show this message)
-The format of magnetic and gravity anomaly data is
+The format of the input magnetic and gravity anomaly data file is
 
     xobs(km)  yobs(km)  zobs(km)  anomaly(A/m or mgal)
 The "terrain file" specified by the -t option is the gridded terrain elevation file. The format is
