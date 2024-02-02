@@ -60,8 +60,12 @@ Thus, the problem treated by this code is a mixed $L_2$ and group lasso regulari
            -h (show this message)
 The output is
 
-    model.data: derived model. format is x  y  z  beta  rho<br>
-    recover_mag.data: recovered magnetic anomaly<br>
-    recover_rho.data: recovered gravity anomaly<br>
+    model.data: derived model. format is x(km)  y(km)  z(km)  beta(A/m)  rho(g/cc)
+    recover_mag.data: recovered magnetic anomaly
+    recover_rho.data: recovered gravity anomaly
+
+The "terrain file" specified by the -t option is the terrain elevation file. The format is x(km)  y(km)  z(elevation, km).
+
+
 
 
