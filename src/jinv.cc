@@ -27,8 +27,8 @@ usage (void)
 	fprintf (stderr, "       -l <log10(lambda)>\n");
 	fprintf (stderr, "       -a <alpha>>\n");
 	fprintf (stderr, "[optional]\n");
-	fprintf (stderr, "       -t <terrain file>\n");
-	fprintf (stderr, "       -p <parameter filename:default is settings.par>\n");
+	fprintf (stderr, "       -t <terrain filename>\n");
+	fprintf (stderr, "       -p <setting filename:default is settings.par>\n");
 	fprintf (stderr, "       -x (output kernel matrices)\n");
 	fprintf (stderr, "       -h (show this message)\n");
 	exit (1);
