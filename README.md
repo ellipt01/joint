@@ -71,7 +71,7 @@ The output is the following files:
 The file specified by the -p option is the settings file for the joint inversion, which must contain the following 6 fields:
 
     1. number of grid cells: nx, ny, nz
-    2. area of analysis: west-edgeg, east-edge, south-edge, north-edge, z-top, z-bottom (km)
+    2. area of analysis: west-edge, east-edge, south-edge, north-edge, z-top, z-bottom (km)
     3. altitude of observations: zobs (km)
     4. inclination and declination of geomagnetic field and magnetization vector: exf_inc, exf_dec, mgz_inc, mgz_dec (deg)
     5. penaltyn parameter: mu
