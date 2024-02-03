@@ -38,9 +38,7 @@ make.config specifies some compilation options. You will need to edit and modify
 The sample make.config included in this repository assumes the use of Intel OneApi 2024 (icx and icpx compiler).
 
 ## 3. usage of jinv
-By make command, the core program of the inversion, jinv, is created in the directory, ./bin.
-
-$L_2$-group lasso regularized inversion program
+The make command, creates the core inversion program jinv, the $L_2$-group lasso regularized inversion program, is created in the "./bin" directory.
 
     USAGE: jinv
            -f <magnetic anomaly filename>
