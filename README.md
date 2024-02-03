@@ -35,7 +35,7 @@ Thus, the problem treated by this code is a mixed $L_2$ norm and group lasso reg
 To compile this program, edit "make.config" and run make.
 
 make.config specifies some compilation options. You will need to edit and modify this file according to the C and C++ compiler you are using. In particular, you will need to modify BLAS_LIB and BLAS_CFLAGS flags, which specify the BLAS library and its compiler options, and you will need to change them according to the BLAS library you are using.
-The sample make.config included in this repository assumes the use of Intel OneApi 2024 (icx and icpx compiler).
+The sample make.config included in this repository assumes the use of Intel OneApi 2024 (icx and icpx compiler abd BLAS of NKL).
 
 ## 3. usage of jinv
 After running make, make install creates the core inversion program jinv, the $L_2$-group lasso regularized joint inversion program, in the ./bin directory.
