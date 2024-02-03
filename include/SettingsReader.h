@@ -29,7 +29,7 @@ class SettingsReader
 	bool	_range_specified_;
 	bool	_incdec_specified_;
 	bool	_invparams_specified_;
-	bool	_pparam_specified_;
+	bool	_pparam_specified_;	// is penalty parameter mu specified?
 
 public:
 	SettingsReader ();

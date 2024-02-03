@@ -124,7 +124,7 @@ Joint::start (const double tol, size_t maxiter, bool normalize)
 	size_t	igamax = mm_real_iamax (_g_);
 	double	gamax = fabs (_g_->data[igamax]);
 	_scale_ = famax / gamax;
-std::cout << _scale_ << std::endl;
+std::cout << "scale = " << _scale_ << std::endl;
 	mm_real_xj_scale (_g_, 0, _scale_);
 
 	if (!_admm_) {

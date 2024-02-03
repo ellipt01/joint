@@ -85,7 +85,6 @@ SettingsReader::fwrite (FILE *stream)
 	if (_pparam_specified_) fprintf (stream, "mu:\t\t%.4f\n", _mu_);
 	if (_apply_lower_bound_) fprintf (stream, "nu:\t\t%.4f: lower bounds = %.4f, %.4f\n",
 		_nu_, _beta0_, _rho0_);
-	fprintf (stream, "\n");
 }
 
 void

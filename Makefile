@@ -9,9 +9,11 @@ CFLAGS		= -O3
 CPPFLAGS	= -I. -I./include $(BLAS_CFLAGS) $(GSL_CFLAGS)\
 			  -I./mgcal/include -I./mmreal/include $(OPENMP_FLG)
 
-COMMON_OBJS	= src/ADMM.o src/SettingsReader.o src/Kernel.o src/util.o
+COMMON_OBJS	= 
 
-JINV_OBJS	= src/jinv.o src/Joint.o src/mADMM.o
+JINV_OBJS	= src/jinv.o src/Joint.o\
+			  src/OptReader.o src/SettingsReader.o src/ADMM.o src/mADMM.o\
+			  src/Kernel.o src/util.o
 
 OBJS		= $(JINV_OBJS) $(COMMON_OBJS)
 
