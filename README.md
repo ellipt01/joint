@@ -29,7 +29,7 @@ where $\mathbf{K}$ and $\mathbf{G}$ are the kernel matrix for magnetic and gravi
 The function $P_{group}(\boldsymbol{\beta},\boldsymbol{\rho})$ is the following penalty function of group lasso:
 $$\displaystyle
 P_{group}(\boldsymbol{\beta},\boldsymbol{\rho})=\sum_{j=1}^M\sqrt{\beta_j^2+\rho_j^2}.$$
-Thus, the problem treated by this code is a mixed $L_2$ and group lasso regularized inversion for the magnetic and gravity fields, and $\alpha$ controls the mixing ratio of these two regularizations.
+Thus, the problem treated by this code is a mixed $L_2$ norm and group lasso regularized inversion for the magnetic and gravity anomalies, and $\alpha$ controls the mixing ratio of these two regularizations.
 
 ## 2. compilaton
 To compile this program, edit "make.config" and run make.
