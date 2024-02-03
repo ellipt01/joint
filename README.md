@@ -47,7 +47,7 @@ The make command creates the core inversion program jinv, the $L_2$-group lasso 
            -a <alpha: mixing ratio of L2 (alpha) and group lasso (1-alpha)>
     [optional]
            -t <terrain filename>
-           -p <parameter filename:default is settings.par>
+           -p <setting filename:default is settings.par>
            -x (output kernel matrices)
            -h (show this message)
 The format of the input magnetic and gravity anomaly data file is
