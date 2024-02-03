@@ -53,7 +53,7 @@ After running make, make install creates the core inversion program jinv, the $L
 The format of the input magnetic and gravity anomaly data file is
 
     xobs(km)  yobs(km)  zobs(km)  anomaly(A/m or mgal)
-The "terrain file" specified by the -t option is the gridded terrain elevation file. The format is
+The terrain file specified by the -t option is the gridded terrain elevation file. The format is
 
     x(km)  y(km)  z(elevation, km)
 If terrain file is not specified, the surface topography of the study area is assumed to be a flat plane. The grid of the terrain must be the same as the subsurface space specified in the settings file described below.
