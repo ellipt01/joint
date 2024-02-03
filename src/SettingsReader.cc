@@ -1,10 +1,10 @@
 #include <iostream>
 #include <cstring>
 
-#include "OptReader.h"
+#include "SettingsReader.h"
 
 void
-OptReader::_init_ (void)
+SettingsReader::_init_ (void)
 {
 	_ngrid_specified_ = false;
 	_range_specified_ = false;
@@ -17,13 +17,13 @@ OptReader::_init_ (void)
 	_maxiter_ = 10000;
 }
 
-OptReader::OptReader ()
+SettingsReader::SettingsReader ()
 {
 	_init_ ();
 }
 
 void
-OptReader::fread (FILE *stream)
+SettingsReader::fread (FILE *stream)
 {
 	char	buf[BUFSIZ];
 
@@ -61,7 +61,7 @@ OptReader::fread (FILE *stream)
 				break;
 			case '6': // mu
 				sscanf (p, "%lf,%lf,%lf", &_nu_, &_beta0_, &_rho0_);
-				_apply_lower_bound_ = true;
+				if (_nu_ > 0.) _apply_lower_bound_ = true;
 				break;
 			default:
 				break;
@@ -70,7 +70,7 @@ OptReader::fread (FILE *stream)
 }
 
 void
-OptReader::fwrite (FILE *stream)
+SettingsReader::fwrite (FILE *stream)
 {
 	fprintf (stream, "\n");
 	if (_ngrid_specified_) fprintf (stream, "number of grid:\t%ld/%ld/%ld\n", _nx_, _ny_, _nz_);
@@ -89,7 +89,7 @@ OptReader::fwrite (FILE *stream)
 }
 
 void
-OptReader::ngrid (size_t *nx, size_t *ny, size_t *nz)
+SettingsReader::ngrid (size_t *nx, size_t *ny, size_t *nz)
 {
 	if (!_ngrid_specified_) throw std::runtime_error ("ngrid is not specified");
 	if (nx) *nx = _nx_;
@@ -98,7 +98,7 @@ OptReader::ngrid (size_t *nx, size_t *ny, size_t *nz)
 }
 
 void
-OptReader::range (double x[], double y[], double z[])
+SettingsReader::range (double x[], double y[], double z[])
 {
 	if (!_range_specified_) throw std::runtime_error ("number of grid is not specified");
 	if (x) {
@@ -116,7 +116,7 @@ OptReader::range (double x[], double y[], double z[])
 }
 
 void
-OptReader::incdec (double *exf_inc, double *exf_dec, double *mgz_inc, double *mgz_dec)
+SettingsReader::incdec (double *exf_inc, double *exf_dec, double *mgz_inc, double *mgz_dec)
 {
 	if (!_incdec_specified_)
 		throw std::runtime_error ("inclination and declination are not specified");
@@ -127,14 +127,14 @@ OptReader::incdec (double *exf_inc, double *exf_dec, double *mgz_inc, double *mg
 }
 
 void
-OptReader::invparams (double *tol, size_t *maxiter)
+SettingsReader::invparams (double *tol, size_t *maxiter)
 {
 	if (tol) *tol = _tolerance_;
 	if (maxiter) *maxiter = _maxiter_;
 }
 
 void
-OptReader::pparam (double *mu)
+SettingsReader::pparam (double *mu)
 {
 	if (!_pparam_specified_)
 		throw std::runtime_error ("penalty parameter is not specified");
@@ -142,7 +142,7 @@ OptReader::pparam (double *mu)
 }
 
 void
-OptReader::lower_bound (double *nu, double *beta0, double *rho0)
+SettingsReader::lower_bound (double *nu, double *beta0, double *rho0)
 {
 	if (!_apply_lower_bound_) return;
 	if (nu) *nu = _nu_;

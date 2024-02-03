@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 #include "Joint.h"
-#include "OptReader.h"
+#include "SettingsReader.h"
 #include "util.h"
 #include "inv.h"
 
@@ -147,7 +147,7 @@ main (int argc, char **argv)
 		exit (1);
 	}
 
-	OptReader	reader;
+	SettingsReader	reader;
 	FILE	*fp = fopen (fn_par, "r");
 	if (!fp) {
 		fprintf (stderr, "ERROR: cannot open file %s\n", fn_par);
