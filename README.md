@@ -62,7 +62,7 @@ If the -x option is specified, the kernel matrices $\mathbf{K}$ and $\mathbf{G}$
 https://math.nist.gov/MatrixMarket/
 
 
-The output is
+The output is the following files:
 
     model.data: derived model. format is x(km)  y(km)  z(km)  beta(A/m)  rho(g/cc)
     recover_mag.data: recovered magnetic anomaly
