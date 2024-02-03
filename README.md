@@ -43,10 +43,10 @@ The make command creates the core inversion program jinv, the $L_2$-group lasso 
     USAGE: jinv
            -f <magnetic anomaly filename>
            -g <gravitic anomaly filename>
-           -l <log10(lambda)>
-           -a <alpha>
+           -l <log10(lambda): regularization parameter>
+           -a <alpha: mixing ratio of L2 (alpha) and group lasso (1-alpha)>
     [optional]
-           -t <terrain file>
+           -t <terrain filename>
            -p <parameter filename:default is settings.par>
            -x (output kernel matrices)
            -h (show this message)
@@ -56,7 +56,7 @@ The format of the input magnetic and gravity anomaly data file is
 The "terrain file" specified by the -t option is the gridded terrain elevation file. The format is
 
     x(km)  y(km)  z(elevation, km)
-The terrain grid must be the same as the subsurface space specified in the settings file described below.
+If terrain file is not specified, the surface topography of the study area is assumed to be a flat plane. The terrain grid must be the same as the subsurface space specified in the settings file described below.
     
 The output is
 
