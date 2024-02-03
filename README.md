@@ -59,6 +59,7 @@ The terrain file specified by the -t option is the gridded terrain elevation fil
 If terrain file is not specified, the surface topography of the study area is assumed to be a flat plane. The grid of the terrain must be the same as the subsurface space specified in the settings file described below.
 
 If the -x option is specified, the kernel matrices $\mathbf{K}$ and $\mathbf{G}$ are written to the files "K.mat" and "G.mat", respectively, in MatrixMarket format.
+https://math.nist.gov/MatrixMarket/
 
 
 The output is
