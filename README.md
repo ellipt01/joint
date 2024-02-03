@@ -31,7 +31,16 @@ $$\displaystyle
 P_{group}(\boldsymbol{\beta},\boldsymbol{\rho})=\sum_{j=1}^M\sqrt{\beta_j^2+\rho_j^2}.$$
 Thus, the problem treated by this code is a mixed $L_2$ and group lasso regularized inversion for the magnetic and gravity fields, and $\alpha$ controls the mixing ratio of these two regularizations.
 
-## 2. usage of jinv, $L_2$-group lasso regularized inversion program
+## 2. compilaton
+To compile this program, edit "make.config" and run make.
+
+make.config specifies some compilation options. You will need to edit and modify this file according to the C and C++ compiler you are using. In particular, you will need to modify BLAS_LIB and BLAS_CFLAGS, which specify the BLAS library and its compiler options, and you will need to change them according to the BLAS library you are using.
+The sample make.config included in this repository assumes the use of Intel OneApi 2024 (icx and icpx compiler).
+
+## 3. usage of jinv
+By make command, the core program of the inversion, jinv, is created in the directory, ./bin.
+
+$L_2$-group lasso regularized inversion program
 
     USAGE: jinv
            -f <magnetic anomaly filename>
@@ -79,9 +88,3 @@ The format of the settings file is
     6. nu, beta0, rho0:	1.0, 0., 0.
 
 In the case of the above example, the subsurface space $x\in$ [-2., 2. (km)], $y\in$ [-2., 2. (km)], and $z\in$ [-2., 0. (km)] is divided into nx=50, ny=50, and nz=25 grid cells, and the magnetization $\beta_j$ and density $\rho_j$ are assigned to each grid cell. nu ($\nu$) is a penalty parameter for the lower-bound constraint, and if zero or a negative value is specidied to nu, the lower-bound constraint is not applied.
-
-## 3. compilaton
-To compile this program, edit "make.config" and run make.
-
-make.config specifies some compilation options. You will need to edit and modify this file according to the C and C++ compiler you are using. In particular, you will need to modify BLAS_LIB and BLAS_CFLAGS, which specify the BLAS library and its compiler options, and you will need to change them according to the BLAS library you are using.
-The sample make.config included in this repository assumes the use of Intel OneApi 2024 (icx and icpx compiler).
