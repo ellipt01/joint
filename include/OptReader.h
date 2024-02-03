@@ -8,19 +8,12 @@ typedef enum {
 
 class OptReader
 {
-	bool	_fn_mag_specified_;
 	char	_fn_mag_[256];
-
-	bool	_fn_grv_specified_;
 	char	_fn_grv_[256];
-
 	char	*_fn_ter_;
 
-	bool	_lambda_specified_;
 	double	_log10_lambda_;
 	double	_lambda_;
-
-	bool	_alpha_specified_;
 	double	_alpha_;
 
 	char	_fn_settings_[256];
@@ -30,6 +23,11 @@ class OptReader
 	data_type	_type_;
 
 	char	*_toolname_;
+
+	bool	_fn_mag_specified_;
+	bool	_fn_grv_specified_;
+	bool	_lambda_specified_;
+	bool	_alpha_specified_;
 
 public:
 	OptReader (char *toolname);
