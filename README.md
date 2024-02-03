@@ -11,7 +11,7 @@ Generally, to derive the subsurface magnetic and gravity structure, the subsurfa
 
 #### group lasso
 Now, denote the subsurface magnetization distribution as $\boldsymbol{\beta}$, that of density as $\boldsymbol{\rho}$, and observed magnetic and gravity anomalies as $\mathbf{f}$ and $\mathbf{g}$, respecively.
-The objective function tobe minimized is
+The objective function to be minimized is
 $$\displaystyle
 L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda, \alpha)=
 \frac{1}{2}\left\|
