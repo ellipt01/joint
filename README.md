@@ -34,7 +34,7 @@ Thus, the problem treated by this code is a mixed $L_2$ norm and group lasso reg
 ## 2. compilaton
 To compile this program, edit "make.config" and run make.
 
-make.config specifies some compilation options. You will need to edit and modify this file according to the C and C++ compiler you are using. In particular, you will need to modify BLAS_LIB and BLAS_CFLAGS, which specify the BLAS library and its compiler options, and you will need to change them according to the BLAS library you are using.
+make.config specifies some compilation options. You will need to edit and modify this file according to the C and C++ compiler you are using. In particular, you will need to modify BLAS_LIB and BLAS_CFLAGS flags, which specify the BLAS library and its compiler options, and you will need to change them according to the BLAS library you are using.
 The sample make.config included in this repository assumes the use of Intel OneApi 2024 (icx and icpx compiler).
 
 ## 3. usage of jinv
