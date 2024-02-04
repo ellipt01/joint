@@ -1,9 +1,7 @@
 #include <iostream>
-#include <cstdlib>
 #include <cstring>
-#include <unistd.h>
 
-#include <mmreal.h>
+#include "mmreal.h"
 
 // fprintf mm_real in vector / matrix form
 void
@@ -25,34 +23,6 @@ get_toolname (char *str)
 	if (p == NULL) p = str;
 	else p++;
 	return p;
-}
-
-void
-check_mem (const char *header)
-{
-	char	command[BUFSIZ];
-	char	buf[BUFSIZ];
-	sprintf (command, "grep VmSize /proc/%d/status", getpid ());
-
-	if (header) fprintf (stderr, "%s", header);
-
-	FILE	*fp = popen (command, "r");
-	if (!fp) {
-		fprintf (stderr, "ERROR: failed to open pipe.\nAbort.\n");
-		exit (1);
-	}
-
-	while (fgets (buf, BUFSIZ, fp) != NULL) {
-		size_t	size;
-		sscanf (buf, "VmSize: %lu kB", &size);
-		if (size < 1000) {
-			fprintf (stderr, "%lu kB\n", size);
-		} else if (1000 <= size) {
-			fprintf (stderr, "%lu MB\n", size / 1000);
-		}
-	}
-	fclose (fp);
-//	system (command);
 }
 
 size_t
