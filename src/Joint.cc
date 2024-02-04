@@ -126,8 +126,8 @@ Joint::fwrite_settings (FILE *stream)
 	fprintf (stream, "mag:inc, dec:\t%.4f/%.4f\n", _mgz_inc_, _mgz_dec_);
 	fprintf (stream, "tol, maxiter:\t%.2e/%ld\n", _tolerance_, _maxiter_);
 	fprintf (stream, "mu:\t\t%.4f\n", _mu_);
-	if (_nu_ > 0.) fprintf (stream, "nu:\t\t%.4f: lower bounds = %.4f, %.4f\n",
-		_nu_, _beta_lower_, _rho_lower_);
+	if (_nu_ > 0.)
+		fprintf (stream, "nu:\t\t%.4f: lower bounds = %.4f, %.4f\n", _nu_, _beta_lower_, _rho_lower_);
 }
 
 void
@@ -213,7 +213,9 @@ Joint::read_inline (int argc, char **argv)
 			case 'h':
 				usage ();
 
+			case '?':
 			default:
+				throw std::runtime_error ("unknown option is specified");
 				break;
 		}
 	}
