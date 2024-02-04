@@ -1,28 +1,49 @@
 #include "Kernel.h"
 #include "mADMM.h"
 
+typedef enum {
+	DATA_TYPE_MAGNETIC = 0,
+	DATA_TYPE_GRAVITY = 1,
+	DATA_TYPE_NONE = -1
+} data_type;
+
 class Joint
 {
+
+	char		*_toolname_;
+
+	char		_fn_mag_[256];
+	char		_fn_grv_[256];
+	char		_fn_settings_[256];
+	char		*_fn_ter_;
+
 	double		_alpha_;
+	double		_log10_lambda_;
 	double		_lambda_;
 	double		_mu_;
+
 	double		_nu_;
+	double		_beta_lower_;
+	double		_rho_lower_;
 	mm_real		*_lower_;
 
 	double		_exf_inc_;
 	double		_exf_dec_;
 
-	double		_mag_inc_;
-	double		_mag_dec_;
+	double		_mgz_inc_;
+	double		_mgz_dec_;
 
 	size_t		_nx_;
 	size_t		_ny_;
 	size_t		_nz_;
 
-	double		*_xrange_;
-	double		*_yrange_;
-	double		*_zrange_;
+	double		_xrange_[2];
+	double		_yrange_[2];
+	double		_zrange_[2];
 	double		*_zsurf_;
+
+	double		_tolerance_;
+	size_t		_maxiter_;
 
 	data_array	*_magdata_;
 	MagKernel	*_magker_; 
@@ -40,34 +61,51 @@ class Joint
 	size_t		_niter_;
 	mADMM		*_admm_;
 
-public:
-	Joint (double alpha, double lambda, double mu, double nu, mm_real *lower);
+	bool		_export_matrix_;
 
-	void	set_params (double alpha, double lambda, double mu);
-	void	set_range (size_t nx, size_t ny, size_t nz, double x[], double y[], double z[]);
+public:
+	Joint () { __init__ (); }
+	
+	void	usage ();
+	
+	void	prepare (int argc, char **argv);
+
+	size_t	start (bool normalize);
+	size_t	restart ();
+
+	double	residual ();
+	void	recover (mm_real *f, mm_real *g);
+
+	double	get_tolerance () { return _tolerance_; }
+	size_t	get_maxiter () { return _maxiter_; }
+
+	mm_real	*get_beta ();
+	mm_real	*get_rho ();
+
+	void	fwrite_inline (FILE *stream);
+	void	fwrite_settings (FILE *stream);
+
+	void	export_results ();
+
+protected:
+	void	read_inline (int argc, char **argv);
+	void	fread_settings (FILE *stream);
+
+	void	read_data ();
+	void	set_lower_bounds ();
 	void	set_surface (size_t c, double *zsurf);
+
+	void	simeq ();
 
 	void	set_mag (double inc, double dec, data_array *data);
 	void	set_mag (double exf_inc, double exf_dec, double mag_inc, double mag_dec, data_array *data);
 	void	set_grv (data_array *data);
 
-	size_t	start (const double tol, size_t maxiter, bool normalize);
-	size_t	restart (const double tol, size_t maxiter);
-	double	residual ();
-
-	void	recover (mm_real *f, mm_real *g);
-
-	mm_real	*get_beta ();
-	mm_real	*get_rho ();
-
-	mm_real	*get_f () { return _f_; }
-	mm_real	*get_K () { return _K_; }
-	mm_real	*get_g () { return _g_; }
-	mm_real	*get_G () { return _G_; }
-
-	void	fwrite (FILE *fp);
-
+	void	fwrite_model (FILE *fp);
+	void	export_matrix ();
+	
 private:
 	void	__init__ ();
+
 };
 

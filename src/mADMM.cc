@@ -11,7 +11,7 @@ mADMM::mADMM (double alpha, double lambda, double mu, double nu, mm_real *lower)
 	__init__ ();
 	_mu_ = mu;
 
-	if (nu > 0.) {
+	if (nu > 0. && lower != NULL) {
 		_nu_ = nu;
 		_lower_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, lower->m, lower->n, lower->nnz);
 		mm_real_memcpy (_lower_, lower);

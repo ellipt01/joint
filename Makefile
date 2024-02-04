@@ -11,8 +11,7 @@ CPPFLAGS	= -I. -I./include $(BLAS_CFLAGS) $(GSL_CFLAGS)\
 
 COMMON_OBJS	= 
 
-JINV_OBJS	= src/jinv.o src/Joint.o\
-			  src/OptReader.o src/SettingsReader.o src/ADMM.o src/mADMM.o\
+JINV_OBJS	= src/jinv.o src/Joint.o src/ADMM.o src/mADMM.o\
 			  src/Kernel.o src/util.o
 
 OBJS		= $(JINV_OBJS) $(COMMON_OBJS)
