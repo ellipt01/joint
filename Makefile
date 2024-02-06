@@ -4,9 +4,9 @@ DESTDIR		= ./bin
 DESTLIBDIR	= ./lib
 
 LOCALLIBS	= -L./lib -lmgcal -lmmreal
-LIBS		= $(BLAS_LIB) $(GSL_LIB) -lm
+LIBS		= $(BLAS_LIB) -lm
 CFLAGS		= -O3
-CPPFLAGS	= -I. -I./include $(BLAS_CFLAGS) $(GSL_CFLAGS)\
+CPPFLAGS	= -I. -I./include $(BLAS_CFLAGS)\
 			  -I./mgcal/include -I./mmreal/include $(OPENMP_FLG)
 
 COMMON_OBJS	= 
