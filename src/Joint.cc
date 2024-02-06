@@ -2,6 +2,11 @@
 #include <cstring>
 #include <unistd.h>
 
+#include "mgcal.h"
+#include "mmreal.h"
+#include "Kernel.h"
+#include "ADMM.h"
+#include "mADMM.h"
 #include "Joint.h"
 #include "util.h"
 
@@ -339,54 +344,28 @@ Joint::simeq ()
 }
 
 void
-Joint::set_mag (double inc, double dec, data_array *data)
+Joint::set_mag (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec, data_array *data)
 {
-	_exf_inc_ = inc;
-	_exf_dec_ = dec;
-	_mgz_inc_ = inc;
-	_mgz_dec_ = dec;
+	size_t	n = data->n;
+	_f_ = mm_real_view_array (MM_REAL_DENSE, MM_REAL_GENERAL, n, 1, n, data->data);
 
-	_magdata_ = data;
-	size_t	n = _magdata_->n;
-	_f_ = mm_real_view_array (MM_REAL_DENSE, MM_REAL_GENERAL, n, 1, n, _magdata_->data);
-
-	_magker_ = new MagKernel (_exf_inc_, _exf_dec_, _mgz_inc_, _mgz_dec_);
+	_magker_ = new MagKernel (exf_inc, exf_dec, mgz_inc, mgz_dec);
 	_magker_->set_range (_nx_, _ny_, _nz_, _xrange_, _yrange_, _zrange_, 1000.);
 	if (_zsurf_) _magker_->set_surface (_zsurf_);
-	_magker_->set_data (_magdata_);	
-	_K_ = _magker_->get ();
-}
-
-void
-Joint::set_mag (double exf_inc, double exf_dec, double mag_inc, double mag_dec, data_array *data)
-{
-	_exf_inc_ = exf_inc;
-	_exf_dec_ = exf_dec;
-	_mgz_inc_ = mag_inc;
-	_mgz_dec_ = mag_dec;
-
-	_magdata_ = data;
-	size_t	n = _magdata_->n;
-	_f_ = mm_real_view_array (MM_REAL_DENSE, MM_REAL_GENERAL, n, 1, n, _magdata_->data);
-
-	_magker_ = new MagKernel (_exf_inc_, _exf_dec_, _mgz_inc_, _mgz_dec_);
-	_magker_->set_range (_nx_, _ny_, _nz_, _xrange_, _yrange_, _zrange_, 1000.);
-	if (_zsurf_) _magker_->set_surface (_zsurf_);
-	_magker_->set_data (_magdata_);	
+	_magker_->set_data (data);	
 	_K_ = _magker_->get ();
 }
 
 void
 Joint::set_grv (data_array *data)
 {
-	_grvdata_ = data;
-	size_t	n = _grvdata_->n;
-	_g_ = mm_real_view_array (MM_REAL_DENSE, MM_REAL_GENERAL, n, 1, n, _grvdata_->data);
+	size_t	n = data->n;
+	_g_ = mm_real_view_array (MM_REAL_DENSE, MM_REAL_GENERAL, n, 1, n, data->data);
 
 	_grvker_ = new GravKernel ();
 	_grvker_->set_range (_nx_, _ny_, _nz_, _xrange_, _yrange_, _zrange_, 1000.);
 	if (_zsurf_) _grvker_->set_surface (_zsurf_);
-	_grvker_->set_data (_grvdata_);	
+	_grvker_->set_data (data);	
 	_G_ = _grvker_->get ();
 }
 
@@ -440,6 +419,8 @@ void
 Joint::__init__ ()
 {
 	strcpy (_fn_settings_, "settings.par");
+
+	_fn_ter_ = NULL;
 
 	_nx_ = -1;
 	_ny_ = -1;

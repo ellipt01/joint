@@ -2,6 +2,11 @@
 #include <cmath>
 #include <cfloat>
 
+#include <mkl_blas.h>
+#include <mkl_lapack.h>
+
+#include "mgcal.h"
+#include "mmreal.h"
 #include "ADMM.h"
 #include "util.h"
 
@@ -18,10 +23,12 @@ ADMM::ADMM (double alpha, double lambda, double mu, double nu, mm_real *lower)
 	__init__ ();
 	_mu_ = mu;
 
-	_nu_ = nu;
-	_lower_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, lower->m, lower->n, lower->nnz);
-	mm_real_memcpy (_lower_, lower);
-	_apply_lower_bound_ = true;
+	if (nu > 0. && lower != NULL) {
+		_nu_ = nu;
+		_lower_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, lower->m, lower->n, lower->nnz);
+		mm_real_memcpy (_lower_, lower);
+		_apply_lower_bound_ = true;
+	}
 
 	set_params (alpha, lambda);
 }

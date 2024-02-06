@@ -1,4 +1,5 @@
-#include "ADMM.h"
+#ifndef _MADMM_H_
+#define _MADMM_H_
 
 class mADMM : public ADMM {
 
@@ -100,3 +101,4 @@ private:
 	void	__init__ ();
 };
 
+#endif

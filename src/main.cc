@@ -1,7 +1,6 @@
 #include <iostream>
 
-#include "Joint.h"
-#include "util.h"
+#include "jinv.h"
 
 int
 main (int argc, char **argv)

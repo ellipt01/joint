@@ -1,6 +1,5 @@
-#include <mkl_blas.h>
-#include <mkl_lapack.h>
-#include "mmreal.h"
+#ifndef _ADMM_H_
+#define _ADMM_H_
 
 /*** A class implements the Alternative Direction Method of Multiplier (ADMM) ***/
 class ADMM {
@@ -108,3 +107,4 @@ private:
 	void	__init__ ();
 };
 
+#endif

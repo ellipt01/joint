@@ -1,5 +1,5 @@
-#include <mgcal.h>
-#include <mmreal.h>
+#ifndef _KERNEL_H_
+#define _KERNEL_H_
 
 /*** super class of kernel ***/
 class Kernel {
@@ -63,3 +63,4 @@ public:
 	GravKernel ();
 };
 
+#endif

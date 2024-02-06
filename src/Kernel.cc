@@ -1,6 +1,7 @@
 #include <iostream>
-#include <cmath>
 
+#include "mgcal.h"
+#include "mmreal.h"
 #include "Kernel.h"
 #include "gravity.h"
 

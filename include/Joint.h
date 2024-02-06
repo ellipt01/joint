@@ -1,5 +1,5 @@
-#include "Kernel.h"
-#include "mADMM.h"
+#ifndef _JOINT_H_
+#define _JOINT_H_
 
 typedef enum {
 	DATA_TYPE_MAGNETIC = 0,
@@ -97,8 +97,7 @@ protected:
 
 	void	simeq ();
 
-	void	set_mag (double inc, double dec, data_array *data);
-	void	set_mag (double exf_inc, double exf_dec, double mag_inc, double mag_dec, data_array *data);
+	void	set_mag (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec, data_array *data);
 	void	set_grv (data_array *data);
 
 	void	fwrite_model (FILE *fp);
@@ -109,3 +108,4 @@ private:
 
 };
 
+#endif
