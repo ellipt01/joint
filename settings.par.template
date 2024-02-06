@@ -1,0 +1,30 @@
+# parameter settings
+# ***FORMAT***
+# identifier(1-6). explanations:	VALUES, VALUES,...
+#
+# *** DESCRIPTION ***
+# 1. number of grid cells: nx, ny, nz
+# 2. area of analysis: xleft, xright, yleft, yright, ztop, zbottom (km)
+# 3. altitude of observations: zobs (km)
+# 4. magnetic inclination and declination (degree): inc, dec
+# 5. penaltyn parameter: mu
+# 6. inversion parameters: tolerance, num. of maxiter
+
+# number of grid cells
+1. nx, ny, nz:			50, 50, 25
+
+# x, y, z range
+2. x, y, zrange (km):	-2., 2., -2., 2., 0., -2.
+
+# inclination, declination
+3. inc, dec(deg.):		45., -7., 45., -7.
+
+# tolerance, maxiter
+4. tol, maxiter:		1.e-5, 100000
+
+# mu
+5. mu:					1.0
+
+# nu, beta0, rho0
+6. nu, beta0, rho0:		1.0, 0., 0.
+
