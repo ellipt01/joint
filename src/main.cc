@@ -1,6 +1,15 @@
 #include <iostream>
 
-#include "jinv.h"
+#include <mkl_blas.h>
+#include <mkl_lapack.h>
+
+#include "mgcal.h"
+#include "mmreal.h"
+
+#include "Kernel.h"
+#include "ADMM.h"
+#include "mADMM.h"
+#include "Joint.h"
 
 int
 main (int argc, char **argv)
