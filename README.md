@@ -3,11 +3,11 @@
 ## Code for magnetic and gravity joint inversion based on the group lasso regularization.
 
 ## 1. overview
-This code performs the inversion using magnetic and gravity anomaly data jointly, and reveals the subsurface magnetic and gravity structures, i.e. the subsurface distribution of magnetization and density. It is well known that, because the magnetic and gravity inverse problems are ill-posed problem, there are a number of models that equivalently recover the observed data, which can lead to arbitrariness in the derived model. Therefore, previous studies have jointly used magnetic and gravity data, and perform joint inversion by applying the structural coupling, which force to derive highly correlated magnetic and gravity structure, to compensate for the weak constraint of each data on the model.
+This code performs the inversion using magnetic and gravity anomaly data jointly, and reveals the subsurface magnetic and gravity structures, i.e., the subsurface distribution of magnetization and density. It is well known that since the magnetic and gravity inverse problems are ill-posed problems, there are a number of models that equivalently recover the observed data, which may lead to arbitrariness in the derived model. Therefore, previous studies have jointly used magnetic and gravity data, and perform joint inversion by applying the structural coupling, which force to derive highly correlated magnetic and gravity structure, to compensate for the weak constraint of each data on the model.
 
-In our code, we use group lasso regularization. The group lasso is a type of sparse regularization method that achieves variable selection based on the groups of model elements. This method can be used when model elements have inherent groups or clusters, and the model elements of each group together take zero or non-zero values by this regularization.
+In our code, we use group lasso regularization. The group lasso is a type of sparse regularization method that achieves variable selection based on the groups of model elements. This method can be used when model elements have inherent groups or clusters, and the model elements of each group together take zero or nonzero values through this regularization.
 
-Generally, to derive the subsurface magnetic and gravity structure, the subsurface space is divided into small grid cells, and the magnetization and density are assigned to each cell, and tried to estimate these parameters to recover the observed anomalies. In this code, the magnetization and density of each cell are grouped and a group lasso is applied. Thus, the magnetization and density of each cell together take on a zero or non-zero value. As a result, the magnetization and density structure become similar, and a highly correlated model is expected to be derived.
+Generally, to derive the subsurface magnetic and gravity structure, the subsurface space is divided into small grid cells, and the magnetization and density are assigned to each cell, and an attempt is made to estimate these parameters to recover the observed anomalies. In this code, the magnetization and density of each cell are grouped and a group lasso is applied. In this way, the magnetization and density of each cell together take on a zero or non-zero value. As a result, the magnetization and density structure become similar, and a highly correlated model is expected to be derived.
 
 #### group lasso
 Now, denote the subsurface magnetization distribution as $\boldsymbol{\beta}$, that of density as $\boldsymbol{\rho}$, and observed magnetic and gravity anomalies as $\mathbf{f}$ and $\mathbf{g}$, respecively.
@@ -34,12 +34,11 @@ Thus, the problem treated by this code is a mixed $L_2$ norm and group lasso reg
 ## 2. compilaton
 To compile this program, edit "make.config" and run make.
 
-make.config specifies some compilation options. You will need to edit and modify this file according to the C and C++ compiler you are using. In particular, you will need to modify BLAS_LIB and BLAS_CFLAGS flags, which specify the BLAS library and its compiler options, and you will need to change them according to the BLAS library you are using.
-The sample make.config included in this repository assumes the use of Intel OneApi 2024 (icx and icpx compilers abd BLAS of MKL).
+make.config specifies some compilation options. You will need to edit and modify this file according to the C and C++ compiler you are using. In particular, you will need to modify the BLAS_LIB and BLAS_CFLAGS flags, which specify the BLAS library and its compiler options according to the BLAS library you are using.
+The sample make.config included in this repository assumes the use of Intel OneApi 2024 (icx and icpx compilers and BLAS from MKL).
 
 ## 3. usage of jinv
-After running make, make install creates the core inversion program jinv, the $L_2$-group lasso regularized joint inversion program, in the ./bin directory.
-
+After running make, make install creates the core inversion program jinv, the $L_2$ norm and group lasso regularized joint inversion program, in the ./bin directory.
     USAGE: jinv
            -f <magnetic anomaly filename>
            -g <gravitic anomaly filename>
@@ -56,7 +55,7 @@ The format of the input magnetic and gravity anomaly data file is
 The terrain file specified by the -t option is the gridded terrain elevation file. The format is
 
     x(km)  y(km)  z(elevation, km)
-If terrain file is not specified, the surface topography of the study area is assumed to be a flat plane. The grid of the terrain must be the same as that of the subsurface space specified in the settings file described below.
+If no terrain file is specified, the surface topography of the study area is assumed to be a flat plane. The grid of the terrain must be the same as that of the subsurface space specified in the settings file described below.
 
 If the -x option is specified, the kernel matrices $\mathbf{K}$ and $\mathbf{G}$ are written to the files "K.mat" and "G.mat", respectively, in MatrixMarket format.
 https://math.nist.gov/MatrixMarket/
@@ -89,5 +88,5 @@ The format of the settings file is
     5. mu:			1.0
     6. nu, beta0, rho0:	1.0, 0., 0.
 
-Lines beginning with # are considered as comments.
-In the case of the above example, the subsurface space $x\in$ [-2., 2. (km)], $y\in$ [-2., 2. (km)], and $z\in$ [-2., 0. (km)] is divided into nx=50, ny=50, and nz=25 grid cells, and the magnetization $\beta_j$ and density $\rho_j$ ($j=1,2,\cdots,$ nx $\times$ ny $\times$ nz) are assigned to each grid cell. nu ($\nu$) is a penalty parameter for the lower-bound constraint, and if zero or a negative value is specidied to nu, the lower-bound constraint is not applied.
+Lines starting with # are considered comments.
+In the case of the above example, the subsurface space $x\in$ [-2., 2. (km)], $y\in$ [-2., 2. (km)], and $z\in$ [-2., 0. (km)] is divided into nx=50, ny=50, and nz=25 grid cells, and assign the magnetization $\beta_j$ and density $\rho_j$ ($j=1,2,\cdots,$ nx $\times$ ny $\times$ nz) to each. nu ($\nu$) is a penalty parameter for the lower-bound constraint; if nu is zero or negative, the lower-bound constraint is not applied.
