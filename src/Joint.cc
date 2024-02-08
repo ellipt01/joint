@@ -4,9 +4,11 @@
 
 #include "mgcal.h"
 #include "mmreal.h"
+
 #include "Kernel.h"
 #include "ADMM.h"
 #include "mADMM.h"
+#include "Inversion.h"
 #include "Joint.h"
 #include "util.h"
 
@@ -311,17 +313,6 @@ Joint::set_lower_bounds ()
 		_lower_->data[i] = _beta_lower_;
 		_lower_->data[m + i] = _rho_lower_;
 	}
-}
-
-void
-Joint::set_surface (size_t c, double *zsurf)
-{
-	if (_nx_ <= 0 || _ny_ <= 0)
-		throw std::runtime_error ("range dose not specified. Call set_range() before.");
-	if (_nx_ * _ny_ != c)
-		throw std::runtime_error ("dim(terrain) is not match with dim(f) and dim(g)");
-	_zsurf_ = new double [c];
-	for (size_t i = 0; i < c; i++) _zsurf_[i] = zsurf[i];
 }
 
 void

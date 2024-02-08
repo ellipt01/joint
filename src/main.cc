@@ -9,6 +9,7 @@
 #include "Kernel.h"
 #include "ADMM.h"
 #include "mADMM.h"
+#include "Inversion.h"
 #include "Joint.h"
 
 int
