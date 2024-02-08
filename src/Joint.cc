@@ -115,7 +115,7 @@ Joint::fwrite_inline (FILE *stream)
 {
 	fprintf (stream, "\n");
 	fprintf (stream, "inut file:\t%s\t%s\n", _fn_mag_, _fn_grv_);
-	if (_fn_ter_) fprintf (stream, "terrain file:\t%.s\n", _fn_ter_); 
+	if (_fn_ter_) fprintf (stream, "terrain file:\t%s\n", _fn_ter_); 
 	fprintf (stream, "lambda:\t%.4f\n", _lambda_);
 	fprintf (stream, "alpha :\t%.4f\n", _alpha_);
 	fprintf (stream, "export matrix: ");
