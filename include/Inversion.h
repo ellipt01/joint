@@ -21,7 +21,6 @@ protected:
 	double		_mu_;
 
 	double		_nu_;
-//	double		_zeta_lower_;
 	mm_real		*_lower_;
 
 	double		_exf_inc_;
