@@ -349,17 +349,16 @@ ADMM::_LUinv_ (mm_real *C)
 	delete [] work;
 }
 
-// compute (K * K.T + mu * I)^-1:
+// compute (K * K.T + coef * I)^-1:
 mm_real *
-ADMM::_Cinv_SMW_ (double mu, mm_real *K)
+ADMM::_Cinv_SMW_ (double coef, mm_real *K)
 {
 	size_t	m = K->m;
 	size_t	n = K->n;
-	// Ci = (K * K.T + mu * I)^-1
+	// Ci = (K * K.T + coef * I)^-1
 	mm_real	*Ci = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, m, m, m * m);
 	mm_real_x_dot_y (false, true, 1., K, K, 0., Ci); // Ci = K * K.T
-	for (size_t i = 0; i < Ci->m; i++) Ci->data[i + i * Ci->m] += mu; // Ci = K * K.T + mu * I
-
+	for (size_t i = 0; i < Ci->m; i++) Ci->data[i + i * Ci->m] += coef; // Ci = K * K.T + coef * I
 #ifdef USE_LUINV
 	_LUinv_ (Ci);
 #else
@@ -369,9 +368,9 @@ ADMM::_Cinv_SMW_ (double mu, mm_real *K)
 	return Ci;
 }
 
-// compute (I - K.T * (K * K.T + mu * I)^-1 * K) * b / mu
+// compute (I - K.T * (K * K.T + coef * I)^-1 * K) * b / coef
 mm_real *
-ADMM::_inv_SMW_ (double mu, mm_real *K, mm_real *Ci, mm_real *b)
+ADMM::_inv_SMW_ (double coef, mm_real *K, mm_real *Ci, mm_real *b)
 {
 	size_t	m = K->m;
 	size_t	n = K->n;
@@ -394,8 +393,8 @@ ADMM::_inv_SMW_ (double mu, mm_real *K, mm_real *Ci, mm_real *b)
 	// zeta = b - K.T * Ci * K * b
 	mm_real_axjpy (1., b, 0, zeta);
 
-	// zeta = (b - K.T * Ci * K * b) / mu
-	if (fabs (_mu_ - 1.) > DBL_EPSILON) mm_real_xj_scale (zeta, 0, 1. / mu);
+	// zeta = (b - K.T * Ci * K * b) / coef
+	if (fabs (coef - 1.) > DBL_EPSILON) mm_real_xj_scale (zeta, 0, 1. / coef);
 
 	return zeta;
 }
