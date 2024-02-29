@@ -47,6 +47,30 @@ data_array_free (data_array *array)
 		if (array->y) free (array->y);
 		if (array->z) free (array->z);
 		if (array->data) free (array->data);
+		free (array);
 	}
+	return;
+}
+
+void
+data_array_ith_copy (data_array *dest, int j, data_array *src, int i)
+{
+	if (j < 0 || dest->n <= j || i < 0 || src->n <= i)
+		error_and_exit ("data_array_ith_copy", "specified index out of range", __FILE__, __LINE__);
+	dest->x[j] = src->x[i];
+	dest->y[j] = src->y[i];
+	dest->z[j] = src->z[i];
+	dest->data[j] = src->data[i];
+
+
+}
+
+void
+data_array_copy (data_array *dest, data_array *src)
+{
+	int		i;
+	if (dest->n != src->n)
+		error_and_exit ("data_array_copy", "size of the data array invalid", __FILE__, __LINE__);
+	for (i = 0; i < src->n; i++) data_array_ith_copy (dest, i, src, i);
 	return;
 }
