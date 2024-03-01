@@ -206,7 +206,6 @@ ADMM::_update_zeta_ ()
 {
 	if (_Ci_ == NULL) _calc_Ci_ ();
 	_update_b_ ();
-
 	if (_zeta_) {
 		mm_real_memcpy (_zeta_prev_, _zeta_);
 		mm_real_free (_zeta_);
@@ -255,8 +254,9 @@ ADMM::_update_u_ ()
 void
 ADMM::_update_v_ ()
 {
-	for (size_t j = 0; j < _size2_; j++)
+	for (size_t j = 0; j < _size2_; j++) {
 		_v_->data[j] += _nu_ * (_t_->data[j] - _zeta_->data[j]);
+	}
 }
 
 // perform ADMM iteration at once

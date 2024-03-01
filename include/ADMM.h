@@ -38,8 +38,8 @@ class ADMM {
 	mm_real	*_v_;		// Lagrange dual
 
 	mm_real	*_c_;		// = X.T * f
-	mm_real	*_b_;		// = c + mu * (t + v)[1:size2]
-	mm_real	*_Ci_;		// = (X * X.T + mu * I)^-1
+	mm_real	*_b_;		// = c + coef * (t + v)
+	mm_real	*_Ci_;		// = (X * X.T + coef * I)^-1
 
 	double	_residual_;
 
@@ -73,8 +73,8 @@ public:
 protected:
 	void	_initialize_ (); 	// initialize zeta, s, and u
 
-	void	_calc_Ci_ ();  // compute CXi = inv(X * X.T + mu * I)
-	void	_update_b_ (); // update b = X.T * f + mu (s + u)
+	void	_calc_Ci_ ();  // compute CXi = inv(X * X.T + coef * I)
+	void	_update_b_ (); // update b = X.T * f + coef * (s + u)
 
 	// ADMM iterations
 	void	_update_zeta_ ();
@@ -98,10 +98,10 @@ protected:
 	void	_cholinv_ (mm_real *C);
 	// compute inv(C) using LU decomposition
 	void	_LUinv_ (mm_real *C);
-	// compute inv(X * X.T + mu * I)
-	mm_real	*_Cinv_SMW_ (double mu, mm_real *K);
-	// compute (I - X.T * Ci * X) * b / mu
-	mm_real	*_inv_SMW_ (double mu, mm_real *X, mm_real *Ci, mm_real *b);
+	// compute inv(X * X.T + coef * I)
+	mm_real	*_Cinv_SMW_ (double coef, mm_real *K);
+	// compute (I - X.T * Ci * X) * b / coef
+	mm_real	*_inv_SMW_ (double coef, mm_real *X, mm_real *Ci, mm_real *b);
 
 private:
 	void	__init__ ();

@@ -50,9 +50,12 @@ protected:
 
 public:
 	Inversion () { __init__ (); }
-	
-	double	get_tolerance () { return _tolerance_; }
-	size_t	get_maxiter () { return _maxiter_; }
+
+	double			get_lambda () { return _lambda_; }
+	double			get_alpha () { return _alpha_; }
+
+	double			get_tolerance () { return _tolerance_; }
+	size_t			get_maxiter () { return _maxiter_; }
 
 	virtual void	usage () = 0;
 	virtual void	prepare (int argc, char **argv) = 0;
@@ -61,7 +64,7 @@ public:
 	virtual void	fwrite_settings (FILE *stream) = 0;
 
 protected:
-	void	set_surface (size_t c, double *zsurf);
+	void			set_surface (size_t c, double *zsurf);
 
 	virtual void	read_inline (int argc, char **argv) = 0;
 	virtual void	fread_settings (FILE *stream) = 0;

@@ -1,10 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include <unistd.h>
-/*
-#include <mkl_blas.h>
-#include <mkl_lapack.h>
-*/
+
 #include "mgcal.h"
 #include "mmreal.h"
 
@@ -46,6 +43,9 @@ Inversion::__init__ ()
 
 	_tolerance_ = 1.e-3;
 	_maxiter_ = 1000;
+
+	_magker_ = NULL; 
+	_grvker_ = NULL; 
 
 	_export_matrix_ = false;
 }
