@@ -134,7 +134,8 @@ ADMM::fwrite_Cinv (FILE *fp)
 }
 
 /*** protected methods ***/
-// initialize zeta, s, and u
+// initialize zeta, s, and u,
+// also t and v when bound constraint is applied
 void
 ADMM::_initialize_ ()
 {
