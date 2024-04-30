@@ -13,23 +13,23 @@ Generally, to derive the subsurface magnetic and gravity structure, the subsurfa
 Now, denote the subsurface magnetization distribution as $\boldsymbol{\beta}$, that of density as $\boldsymbol{\rho}$, and observed magnetic and gravity anomalies as $\mathbf{f}$ and $\mathbf{g}$, respecively.
 The objective function to be minimized is
 $$\displaystyle
-L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda, \alpha)=
+L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda_1, \lambda_2)=
 \frac{1}{2}\left\|
 	\mathbf{f}-\mathbf{K}\cdot\boldsymbol{\beta}
 \right\|^2
 +\frac{1}{2}\left\|
 	\mathbf{g}-\mathbf{G}\cdot\boldsymbol{\rho}
 \right\|^2
-+\lambda\alpha\left(
++\lambda_2\left(
 	\frac{1}{2}\left\|\boldsymbol{\beta}\right\|^2
 	+\frac{1}{2}\left\|\boldsymbol{\rho}\right\|^2
  \right)
-+\lambda(1-\alpha)P_{group}(\boldsymbol{\beta},\boldsymbol{\rho}),$$
++\lambda_1P_{group}(\boldsymbol{\beta},\boldsymbol{\rho}),$$
 where $\mathbf{K}$ and $\mathbf{G}$ are the kernel matrix for magnetic and gravity anomaly, respectively.
 The function $P_{group}(\boldsymbol{\beta},\boldsymbol{\rho})$ is the following penalty function of group lasso:
 $$\displaystyle
 P_{group}(\boldsymbol{\beta},\boldsymbol{\rho})=\sum_{j=1}^M\sqrt{\beta_j^2+\rho_j^2}.$$
-Thus, the problem treated by this code is a mixed $L_2$ norm and group lasso regularized inversion for the magnetic and gravity anomalies, and $\alpha$ controls the mixing ratio of these two regularizations.
+Thus, the problem treated by this code is a mixed $L_2$ norm and group lasso regularized inversion for the magnetic and gravity anomalies.
 
 ## 2. compilaton
 To compile this program, edit "make.config" and run make.
@@ -42,13 +42,21 @@ After running make, make install creates the core inversion program jinv, the $L
     USAGE: jinv
            -f <magnetic anomaly filename>
            -g <gravitic anomaly filename>
-           -l <log10(lambda): regularization parameter>
-           -a <alpha: mixing ratio of L2 (alpha) and group lasso (1-alpha)>
+           -l <log10(lambda1):log10(lambda2)>
+	   -a <alpha:log10(lambda)>
     [optional]
            -t <terrain filename>
            -p <setting filename:default is settings.par>
            -x (output kernel matrices)
            -h (show this message)
+The options -l and -a specify the reguralization parameters $\lambda_1$ and $\lambda_2$.
+-l specifies log10(lambda1):log10(lambda2), while -a specifies alpha:log10(lambda).
+In the later case, $\lambda$ is the reguralization parameter and $\alpha$ is the mixing ratio of $+_2$ norm and group lasso penalty as the following:
+
+$\lambda_1=\alpha\cdot\lambda,\quad \lambda_2=(1-\alpha)\cdot\lambda$
+
+These options -l and -a cannot be specified simultaneously.
+
 The format of the input magnetic and gravity anomaly data file is
 
     xobs(km)  yobs(km)  zobs(km)  anomaly(A/m or mgal)
