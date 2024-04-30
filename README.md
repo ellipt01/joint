@@ -61,7 +61,7 @@ while -a specifies
 
 -a $\alpha:\log_{10}(\lambda)$
 
-where $\lambda$ is the regularization parameter and $\alpha$ is the mixing ratio of the $L_2$ norm and the group lasso penalty, as the follows:
+where $\lambda$ is the regularization parameter and $\alpha$ is the mixing ratio of the $L_2$ norm and the group lasso penalty, that spesify $\lambda_1$ and $\lambda_2$ as follows:
 
 $\lambda_1=\alpha\cdot\lambda,\quad \lambda_2=(1-\alpha)\cdot\lambda$
 
