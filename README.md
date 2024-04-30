@@ -38,7 +38,7 @@ make.config specifies some compilation options. You will need to edit and modify
 The sample make.config included in this repository assumes the use of Intel OneApi 2024 (icx and icpx compilers and BLAS from MKL).
 
 ## 3. usage of jinv
-After running make, make install creates the core inversion program jinv, the $L_2$ norm and group lasso regularized joint inversion program, in the ./bin directory.
+After running "make", "make install" creates the inversion program "jinv", the $L_2$ norm and group lasso regularized joint inversion program, in the ./bin directory.
     USAGE: jinv
            -f <magnetic anomaly filename>
            -g <gravitic anomaly filename>
