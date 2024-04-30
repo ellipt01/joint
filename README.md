@@ -55,11 +55,11 @@ The -l and -a options specify the regularization parameters $\lambda_1$ and $\la
 
 The -l option specifies
 
-$\log_{10}(\lambda_1):\log_{10}(\lambda_2)$,
+-l $\log_{10}(\lambda_1):\log_{10}(\lambda_2)$,
 
 while -a specifies
 
-$\alpha:\log_{10}(\lambda)$
+-a $\alpha:\log_{10}(\lambda)$
 
 where $\lambda$ is the regularization parameter and $\alpha$ is the mixing ratio of the $L_2$ norm and the group lasso penalty as the following:
 
