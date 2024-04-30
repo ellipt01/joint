@@ -51,8 +51,9 @@ After running "make", "make install" creates the inversion program "jinv", the $
            -x (output kernel matrices)
            -h (show this message)
 
-The options -l and -a specify the reguralization parameters $\lambda_1$ and $\lambda_2$.
--l specifies
+The options -l and -a specify the regularization parameters $\lambda_1$ and $\lambda_2$.
+
+The option -l specifies
 
 $\log_{10}(\lambda_1):\log_{10}(\lambda_2)$,
 
