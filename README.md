@@ -75,7 +75,7 @@ where the delimiter must be Tab (\t).
 The terrain file specified by the -t option is the gridded terrain elevation file. The format is
 
     x(km)  y(km)  z(elevation, km)
-If no terrain file is specified, the surface topography of the study area is assumed to be a flat plane. The grid of the terrain must be the same as that of the subsurface space specified in the settings file described below.
+If no terrain file is specified, the surface topography of the study area is assumed to be a flat plane. The terrain grid must be the same as that of the subsurface space specified in the settings file described below.
 
 If the -x option is specified, the kernel matrices $\mathbf{K}$ and $\mathbf{G}$ are written to the files "K.mat" and "G.mat", respectively, in MatrixMarket format.
 https://math.nist.gov/MatrixMarket/
@@ -110,4 +110,6 @@ The format of the settings file is
     6. nu, beta0, rho0:	1.0, 0., 0.
 
 Lines starting with # are considered comments.
-In the case of the above example, the subsurface space $x\in$ [-2., 2. (km)], $y\in$ [-2., 2. (km)], and $z\in$ [-2., 0. (km)] is divided into nx=50, ny=50, and nz=25 grid cells, and assign the magnetization $\beta_j$ and density $\rho_j$ ($j=1,2,\cdots,$ nx $\times$ ny $\times$ nz) to each. nu ($\nu$) is a penalty parameter for the lower-bound constraint; if nu is zero or negative, the lower-bound constraint is not applied.
+In the case of the above example, the subsurface space $x\in$ [-2., 2. (\mathrm{km})], $y\in$ [-2., 2. (\mathrm{km})], and $z\in$ [-2., 0. (\mathrm{km})] is divided into nx=50, ny=50, and nz=25 grid cells, and assign the magnetization $\beta_j$ and density $\rho_j$ ($j=1,2,\cdots,$ nx $\times$ ny $\times$ nz) to each. nu ($\nu$) is a penalty parameter for the lower-bound constraint; if nu is zero or negative, the lower-bound constraint is not applied.
+
+If terrain file is spesicied, zrange of 2., $z\in[-2., 0. (\mathrm{km}]$ indicates 
