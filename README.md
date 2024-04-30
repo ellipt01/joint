@@ -39,19 +39,21 @@ The sample make.config included in this repository assumes the use of Intel OneA
 
 ## 3. usage of jinv
 After running "make", "make install" creates the inversion program "jinv", the $L_2$ norm and group lasso regularized joint inversion program, in the ./bin directory.
+
     USAGE: jinv
            -f <magnetic anomaly filename>
            -g <gravitic anomaly filename>
            -l <log10(lambda1):log10(lambda2)>
-	   -a <alpha:log10(lambda)>
+           -a <alpha:log10(lambda)>
     [optional]
            -t <terrain filename>
            -p <setting filename:default is settings.par>
            -x (output kernel matrices)
            -h (show this message)
+
 The options -l and -a specify the reguralization parameters $\lambda_1$ and $\lambda_2$.
 -l specifies log10(lambda1):log10(lambda2), while -a specifies alpha:log10(lambda).
-In the later case, $\lambda$ is the reguralization parameter and $\alpha$ is the mixing ratio of $+_2$ norm and group lasso penalty as the following:
+In the later case, $\lambda$ is the regularization parameter and $\alpha$ is the mixing ratio of $+_2$ norm and group lasso penalty as the following:
 
 $\lambda_1=\alpha\cdot\lambda,\quad \lambda_2=(1-\alpha)\cdot\lambda$
 
