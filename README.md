@@ -52,8 +52,8 @@ After running "make", "make install" creates the inversion program "jinv", the $
            -h (show this message)
 
 The options -l and -a specify the reguralization parameters $\lambda_1$ and $\lambda_2$.
--l specifies log10(lambda1):log10(lambda2), while -a specifies alpha:log10(lambda).
-In the later case, $\lambda$ is the regularization parameter and $\alpha$ is the mixing ratio of $+_2$ norm and group lasso penalty as the following:
+-l specifies $\log_{10}(\lambda_1):\log_{10}(\lambda_2)$, while -a specifies $\alpha:\log_{10}(\lambda)$.
+In the later case, $\lambda$ is the regularization parameter and $\alpha$ is the mixing ratio of $L_2$ norm and group lasso penalty as the following:
 
 $\lambda_1=\alpha\cdot\lambda,\quad \lambda_2=(1-\alpha)\cdot\lambda$
 
