@@ -37,6 +37,9 @@ FORCE:
 			$(CPP) $(CFLAGS) -o $*.o -c $(CPPFLAGS) $< $(OPENMP_FLG)
 
 install:
+			@ if [ ! -d $(DESTDIR) ]; then \
+				mkdir $(DESTDIR) ;\
+			fi
 			@ for i in $(PROGRAMS) ; do \
 				echo $(INSTALL) -m 755 $$i $(DESTDIR) ;\
 				$(INSTALL) -m 755 $$i $(DESTDIR) ; \
