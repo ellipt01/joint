@@ -56,6 +56,7 @@ protected:
 	void	set_grv (data_array *data);
 
 	void	fwrite_model (FILE *fp);
+	void	export_weight ();
 	void	export_matrix ();
 	
 private:

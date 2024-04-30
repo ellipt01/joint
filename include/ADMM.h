@@ -7,8 +7,8 @@ class ADMM {
 	size_t	_size1_;	// num of row of the kernel matrix
 	size_t	_size2_;	// num of columns
 
-	double	_alpha_;	// mixing ratio of L2 / group lasso
-	double	_lambda_;	// regularization parameter
+	double	_lambda1_;	// regularization parameter for group lasso penalty
+	double	_lambda2_;	// regularization parameter for L2 norm penalty
 
 	double	_mu_;		// penalty parameter for regularization
 
@@ -45,12 +45,8 @@ class ADMM {
 
 public:
 	ADMM () {}
-	ADMM (double alpha, double lambda, double mu);
-	ADMM (double alpha, double lambda, double mu, double nu, mm_real *lower);
-
-	void	set_params (double alpha, double lambda);
-
-	void	simeq (mm_real *f, mm_real *X, bool normalize);
+	ADMM (double lambda1, double lambda2, double mu);
+	ADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower);
 
 	mm_real	*get_zeta ();
 
@@ -58,7 +54,11 @@ public:
 	mm_real	*get_t () { return _t_; }
 	mm_real	*get_u () { return _u_; }
 	mm_real	*get_v () { return _v_; }
-	mm_real	*get_Ci () { return _Ci_; } // magnetic field
+	mm_real	*get_w () { return _w_; } // weight for kernel matrix
+	mm_real	*get_Ci () { return _Ci_; } // inverse of kernel matrix
+
+	void	set_params (double lambda1, double lambda2);
+	void	simeq (mm_real *f, mm_real *X, bool normalize);
 
 	size_t	start (const double tol, const size_t maxiter);
 	size_t	restart (const double tol, const size_t maxiter);

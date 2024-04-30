@@ -19,15 +19,19 @@ Joint::usage ()
 	fprintf (stderr, "USAGE: %s\n", _toolname_);
 	fprintf (stderr, "       -f <magnetic anomaly filename>\n");
 	fprintf (stderr, "       -g <gravitic anomaly filename>\n");
-	fprintf (stderr, "       -l <log10(lambda)>\n");
-	fprintf (stderr, "       -a <alpha>>\n");
+	fprintf (stderr, "       -l <log10(lambda1):log10(lambda2)>\n");
+	fprintf (stderr, "       -a <alpha:log10(lambda)>\n");
 	fprintf (stderr, "[optional]\n");
 	fprintf (stderr, "       -t <terrain filename>\n");
 	fprintf (stderr, "       -s <setting filename:default is settings.par>\n");
 	fprintf (stderr, "       -x (export kernel matrices)\n");
 	fprintf (stderr, "       -h (show this message)\n");
+	fprintf (stderr, "[notice]\n");
+	fprintf (stderr, "       If log10(lambda) <= -16, lambda is set to 0.\n");
+	fprintf (stderr, "       The -l and -a options are exclusive and cannot be used simultaneously.\n");
 }
 
+// read inline options and read setting file
 void
 Joint::prepare (int argc, char **argv)
 {
@@ -45,6 +49,7 @@ Joint::prepare (int argc, char **argv)
 	fclose (fp);
 }
 
+// start inversion
 size_t
 Joint::start (bool normalize)
 {
@@ -58,13 +63,19 @@ Joint::start (bool normalize)
 
 	_scale_ = famax / gamax;
 	std::cerr << "scale = " << _scale_ << std::endl;
-
+	FILE	*fp = fopen ("scale.data", "w");
+	if (fp) {
+		fprintf (fp, "%.8e\n", _scale_);
+		fclose (fp);
+	}
 	mm_real_xj_scale (_g_, 0, _scale_);
 
 	if (!_admm_) {
-		_admm_ = new mADMM (_alpha_, _lambda_, _mu_, _nu_, _lower_);
+		_admm_ = new mADMM (_lambda1_, _lambda2_, _mu_, _nu_, _lower_);
 		_admm_->simeq (_f_, _g_, _K_, _G_, normalize);
 	}
+	// export weight for kernel matrix
+	export_weight ();
 	return _admm_->start (_tolerance_, _maxiter_);
 }
 
@@ -73,7 +84,7 @@ Joint::restart ()
 {
 	if (!_admm_) throw std::runtime_error ("admm object has not yet been instantiated. Call start() first.");
 
-	_admm_->set_params (_alpha_, _lambda_);
+	_admm_->set_params (_lambda1_, _lambda2_);
 	return _admm_->restart (_tolerance_, _maxiter_);
 }
 
@@ -84,6 +95,7 @@ Joint::residual ()
 	return _admm_->residual ();
 }
 
+// recover magnetic and gravity anomalies
 void
 Joint::recover (mm_real *f, mm_real *g)
 {
@@ -91,6 +103,7 @@ Joint::recover (mm_real *f, mm_real *g)
 	mm_real_xj_scale (g, 0, 1. / _scale_);
 }
 
+// get magnetization model
 mm_real	*
 Joint::get_beta ()
 {
@@ -100,6 +113,7 @@ Joint::get_beta ()
 	return beta;
 }
 
+// get density model
 mm_real *
 Joint::get_rho ()
 {
@@ -110,31 +124,33 @@ Joint::get_rho ()
 	return rho;
 }
 
+// fwrite settings specified by inline options
 void
 Joint::fwrite_inline (FILE *stream)
 {
 	fprintf (stream, "\n");
-	fprintf (stream, "inut file:\t%s\t%s\n", _fn_mag_, _fn_grv_);
+	fprintf (stream, "input file:\t%s\t%s\n", _fn_mag_, _fn_grv_);
 	if (_fn_ter_) fprintf (stream, "terrain file:\t%s\n", _fn_ter_); 
-	fprintf (stream, "lambda:\t%.4f\n", _lambda_);
-	fprintf (stream, "alpha :\t%.4f\n", _alpha_);
+	if (_alpha_ > 0.) fprintf (stream, "alpha,lambda:\t%.4e,%.4e\n", _alpha_, _lambda_);
+	else fprintf (stream, "lambda1,lambda2:\t%.4e,%.4e\n", _lambda1_, _lambda2_);
 	fprintf (stream, "export matrix: ");
 	(_export_matrix_) ? fprintf (stream, "true\n") : fprintf (stream, "false\n");
 }
 
+// fwrite setting specified by setting file
 void
 Joint::fwrite_settings (FILE *stream)
 {
 	fprintf (stream, "\n");
 	fprintf (stream, "number of grid:\t%ld/%ld/%ld\n", _nx_, _ny_, _nz_);
-	fprintf (stream, "x, y, z range:\t%.4f/%.4f/%.4f/%.4f/%.4f/%.4f\n", 
+	fprintf (stream, "x,y,z range:\t%.4f/%.4f,%.4f/%.4f,%.4f/%.4f\n", 
 			 _xrange_[0], _xrange_[1], _yrange_[0], _yrange_[1], _zrange_[0], _zrange_[1]);
-	fprintf (stream, "exf:inc, dec:\t%.4f/%.4f\n", _exf_inc_, _exf_dec_);
-	fprintf (stream, "mag:inc, dec:\t%.4f/%.4f\n", _mgz_inc_, _mgz_dec_);
-	fprintf (stream, "tol, maxiter:\t%.2e/%ld\n", _tolerance_, _maxiter_);
+	fprintf (stream, "exf:inc,dec:\t%.4f,%.4f\n", _exf_inc_, _exf_dec_);
+	fprintf (stream, "mag:inc,dec:\t%.4f,%.4f\n", _mgz_inc_, _mgz_dec_);
+	fprintf (stream, "tol,maxiter:\t%.2e,%ld\n", _tolerance_, _maxiter_);
 	fprintf (stream, "mu:\t\t%.4f\n", _mu_);
 	if (_nu_ > 0.)
-		fprintf (stream, "nu:\t\t%.4f: lower bounds = %.4f, %.4f\n", _nu_, _beta_lower_, _rho_lower_);
+		fprintf (stream, "nu:\t\t%.4f:lower bounds = %.4f, %.4f\n", _nu_, _beta_lower_, _rho_lower_);
 }
 
 void
@@ -179,6 +195,8 @@ Joint::read_inline (int argc, char **argv)
 	bool	lambda_specified = false;
 	bool	alpha_specified = false;
 
+	double	log10_lambda, log10_lambda1, log10_lambda2;
+
 	char	opt;
 	while ((opt = getopt (argc, argv, ":f:g:l:a:s:t:xh")) != -1) {
 		switch (opt) {
@@ -193,13 +211,20 @@ Joint::read_inline (int argc, char **argv)
 				break;
 
 			case 'l':
-				_log10_lambda_ = (double) atof (optarg);
-				_lambda_ = pow (10., _log10_lambda_);
+				sscanf (optarg, "%lf:%lf", &log10_lambda1, &log10_lambda2);
+				if (log10_lambda1 > -16) _lambda1_ = pow (10., log10_lambda1);
+				else _lambda1_ = 0.;
+				if (log10_lambda2 > -16) _lambda2_ = pow (10., log10_lambda2);
+				else _lambda2_ = 0.;
 				lambda_specified = true;
 				break;
 
 			case 'a':
-				_alpha_ = (double) atof (optarg);
+				sscanf (optarg, "%lf:%lf", &_alpha_, &log10_lambda);
+				if (log10_lambda1 > -16) _lambda_ = pow (10., log10_lambda);
+				else _lambda_ = 0.;
+				_lambda1_ = _alpha_ * _lambda_;
+				_lambda2_ = (1. - _alpha_) * _lambda_;
 				alpha_specified = true;
 				break;
 
@@ -228,8 +253,10 @@ Joint::read_inline (int argc, char **argv)
 	}
 	if (!fn_mag_specified) throw std::runtime_error ("magnetic anomaly data filename is not specified");
 	if (!fn_grv_specified) throw std::runtime_error ("gravitic anomaly data filename is not specified");
-	if (!lambda_specified) throw std::runtime_error ("lambda is not specified");
-	if (!alpha_specified) throw std::runtime_error ("alpha is not specified");
+	if (!lambda_specified && !alpha_specified)
+		throw std::runtime_error ("lambda1:lambda2 or alpha:lambda must be specified");
+	if (lambda_specified && alpha_specified)
+		throw std::runtime_error ("-l and -a options cannot be used simultaneously.");
 }
 
 void
@@ -391,6 +418,21 @@ Joint::fwrite_model (FILE *fp)
 }
 
 void
+Joint::export_weight ()
+{
+	FILE	*fp = fopen ("wx.vec", "w");
+	if (fp) {
+		mm_real_fwrite (fp, _admm_->get_wx (), "%.8f");
+		fclose (fp);
+	}
+	fp = fopen ("wy.vec", "w");
+	if (fp) {
+		mm_real_fwrite (fp, _admm_->get_wy (), "%.8f");
+		fclose (fp);
+	}
+}
+
+void
 Joint::export_matrix ()
 {
 	FILE	*fp = fopen ("K.mat", "w");
@@ -410,6 +452,9 @@ void
 Joint::__init__ ()
 {
 	strcpy (_fn_settings_, "settings.par");
+
+	_alpha_  = -1.;
+	_lambda_ = -1.;
 
 	_fn_ter_ = NULL;
 

@@ -12,7 +12,7 @@
 #include "util.h"
 
 /*** public methods ***/
-mADMM::mADMM (double alpha, double lambda, double mu, double nu, mm_real *lower)
+mADMM::mADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower)
 {
 	__init__ ();
 	_mu_ = mu;
@@ -24,14 +24,14 @@ mADMM::mADMM (double alpha, double lambda, double mu, double nu, mm_real *lower)
 		_apply_lower_bound_ = true;
 	}
 
-	set_params (alpha, lambda);
+	set_params (lambda1, lambda2);
 }
 
 void
-mADMM::set_params (double alpha, double lambda)
+mADMM::set_params (double lambda1, double lambda2)
 {
-	_alpha_ = alpha;
-	_lambda_ = lambda;
+	_lambda1_ = lambda1;
+	_lambda2_ = lambda2;
 }
 
 // set simultaneous equations to be solved
@@ -53,7 +53,9 @@ mADMM::simeq (mm_real *f, mm_real *g, mm_real *X, mm_real *Y, bool normalize)
 	_Y_ = Y;
 
 	if (normalize) {
+		if (_wx_) mm_real_free (_wx_);
 		_wx_ = _normalize_ (_X_);
+		if (_wy_) mm_real_free (_wy_);
 		_wy_ = _normalize_ (_Y_);
 	}
 	// initialize zeta (beta, rho), s, and u, and set to 0
@@ -283,7 +285,7 @@ mADMM::_update_zeta_ ()
 void
 mADMM::_update_s_ ()
 {
-	double	ck = _mu_ / (_mu_ + (1. - _alpha_) * _lambda_);
+	double	ck = _mu_ / (_mu_ + _lambda2_);
 
 #pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
@@ -291,10 +293,7 @@ mADMM::_update_s_ ()
 		double	q1 = _beta_->data[j] - _u_->data[j];
 		double	q2 = _rho_->data[j] - _u_->data[j + _size2_];
 		double	snrm = sqrt (pow (q1, 2.) + pow (q2, 2.));
-
-		//double	cj = 1. - _alpha_ * _lambda_ / (_mu_ * snrm); 
-		
-		double	l = _alpha_ * _lambda_ / (_mu_ * snrm);
+		double	l = _lambda1_ / (_mu_ * snrm);
 		double	cj = _soft_threshold_ (1., l);
 		_s_->data[j] = ck * q1 * cj;
 		_s_->data[j + _size2_] = ck * q2 * cj;

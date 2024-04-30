@@ -16,8 +16,11 @@ protected:
 	char		*_fn_ter_;
 
 	double		_alpha_;
-	double		_log10_lambda_;
 	double		_lambda_;
+
+	double		_lambda1_;
+	double		_lambda2_;
+
 	double		_mu_;
 
 	double		_nu_;
@@ -51,8 +54,11 @@ protected:
 public:
 	Inversion () { __init__ (); }
 
-	double			get_lambda () { return _lambda_; }
 	double			get_alpha () { return _alpha_; }
+	double			get_lambda () { return _lambda_; }
+
+	double			get_lambda1 () { return _lambda1_; }
+	double			get_lambda2 () { return _lambda2_; }
 
 	double			get_tolerance () { return _tolerance_; }
 	size_t			get_maxiter () { return _maxiter_; }

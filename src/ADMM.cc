@@ -11,14 +11,14 @@
 #include "util.h"
 
 /*** public methods ***/
-ADMM::ADMM (double alpha, double lambda, double mu)
+ADMM::ADMM (double lambda1, double lambda2, double mu)
 {
 	__init__ ();
 	_mu_ = mu;
-	set_params (alpha, lambda);
+	set_params (lambda1, lambda2);
 }
 
-ADMM::ADMM (double alpha, double lambda, double mu, double nu, mm_real *lower)
+ADMM::ADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower)
 {
 	__init__ ();
 	_mu_ = mu;
@@ -30,15 +30,15 @@ ADMM::ADMM (double alpha, double lambda, double mu, double nu, mm_real *lower)
 		_apply_lower_bound_ = true;
 	}
 
-	set_params (alpha, lambda);
+	set_params (lambda1, lambda2);
 }
 
-// set alpha and lambda
+// set lambda1 and lambda2
 void
-ADMM::set_params (double alpha, double lambda)
+ADMM::set_params (double lambda1, double lambda2)
 {
-	_alpha_ = alpha;
-	_lambda_ = lambda;
+	_lambda1_ = lambda1;
+	_lambda2_ = lambda2;
 }
 
 // set simultaneous equations to be solved
@@ -73,7 +73,7 @@ ADMM::get_zeta ()
 
 	mm_real	*zeta = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _zeta_->m, 1, _zeta_->m);
 	mm_real_memcpy (zeta, _zeta_);
-	if (_w_ == NULL) {
+	if (_w_ != NULL) {
 		for (size_t j = 0; j < zeta->m; j++) zeta->data[j] /= _w_->data[j];
 	}
 
@@ -216,16 +216,16 @@ ADMM::_update_zeta_ ()
 }
 
 // update s:
-// s = C1 * S(q, lambda / mu), q = zeta - v
+// s = C1 * S(q, lambda1 / mu), q = zeta - v
 void
 ADMM::_update_s_ ()
 {
-	double	ck = _mu_ / (_mu_ + (1. - _alpha_) * _lambda_);
+	double	ck = _mu_ / (_mu_ + _lambda2_);
 
 #pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
 		double	qj = _zeta_->data[j] - _u_->data[j];
-		double	cj = _soft_threshold_ (qj, _alpha_ * _lambda_ / _mu_);
+		double	cj = _soft_threshold_ (qj, _lambda1_ / _mu_);
 		_s_->data[j] = ck * cj; 
 	}
 }

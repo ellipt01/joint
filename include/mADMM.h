@@ -6,8 +6,8 @@ class mADMM : public ADMM {
 	size_t	_size1_;	// num of row of the kernel matrix
 	size_t	_size2_;	// num of columns
 
-	double	_alpha_;	// mixing ratio of L2 / group lasso
-	double	_lambda_;	// regularization parameter
+	double	_lambda1_;	// regularization parameter for group lasso penalty
+	double	_lambda2_;	// regularization parameter for L2 norm penalty
 
 	double	_mu_;		// penalty parameter for regularization
 
@@ -49,19 +49,20 @@ class mADMM : public ADMM {
 	double	_residual_;
 
 public:
-	mADMM (double alpha, double lambda, double mu, double nu, mm_real *lower);
-
-	void	set_params (double alpha, double lambda);
-
-	void	simeq (mm_real *f, mm_real *g, mm_real *X, mm_real *Y, bool normalize);
+	mADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower);
 
 	mm_real	*get_beta ();
 	mm_real	*get_rho ();
 
 	mm_real	*get_t () { return _s_; }
 	mm_real	*get_v () { return _u_; }
-	mm_real	*get_CXi () { return _CXi_; } // magnetic field
-	mm_real	*get_CYi () { return _CYi_; } // gravity
+	mm_real	*get_wx () { return _wx_; } // weight for magkernel matrix
+	mm_real	*get_wy () { return _wy_; } // weight for grvkernel matrix
+	mm_real	*get_CXi () { return _CXi_; } // inverse for magkernel matrix
+	mm_real	*get_CYi () { return _CYi_; } //             grvkernel matrix
+
+	void	set_params (double lambda1, double lambda2);
+	void	simeq (mm_real *f, mm_real *g, mm_real *X, mm_real *Y, bool normalize);
 
 	size_t	start (const double tol, const size_t maxiter);
 	size_t	restart (const double tol, const size_t maxiter);
