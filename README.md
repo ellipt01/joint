@@ -112,5 +112,5 @@ The format of the settings file is
 Lines starting with # are considered comments.
 In the case of the above example, the subsurface space $x\in$ [-2., 2. (km)], $y\in$ [-2., 2. (km)], and $z\in$ [-2., 0. (km)] is divided into nx=50, ny=50, and nz=25 grid cells, and assign the magnetization $\beta_j$ and density $\rho_j$ ($j=1,2,\cdots,$ nx $\times$ ny $\times$ nz) to each. nu ($\nu$) is a penalty parameter for the lower-bound constraint; if nu is zero or negative, the lower-bound constraint is not applied.
 
-If terrain file is spesicied, zrange of 2., $z\in$ [$z_1$, $z_0$ (km)] indicates, the vertical range of the study area is from surface (topography) +$z_0$ km to surface+$z1$km.
+If terrain file is spesicied, zrange of 2., $z\in$ [ $z_1$, $z_0$ (km)] indicates, the vertical range of the study area is from surface (topography) +$z_0$ km to surface+$z1$km.
 In the case of the above example, $z\in$ [surface, surface - 2 (km) ].
