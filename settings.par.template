@@ -4,14 +4,16 @@
 #
 # *** DESCRIPTION ***
 # 1. number of grid cells: nx, ny, nz
-# 2. area of analysis: xleft, xright, yleft, yright, ztop, zbottom (km)
-# 3. altitude of observations: zobs (km)
-# 4. magnetic inclination and declination (degree): inc, dec
+# 2. area of analysis: xleft, xright, yleft, yright, ztop, zbottom(km)
+# 3. magnetic inclination and declination: inc(degree), dec(degree)
+# 4. conversion tolerance(tol) and maximum num of iterations(maxiter) for inversion
 # 5. penaltyn parameter: mu
-# 6. inversion parameters: tolerance, num. of maxiter
+# 6. bound-constraint:
+#	 penalty param(nu),lower-bound for magnetization(beta0:A/m),and density(rho0:g/cm^3)
+#	 if nu=-1 (or <0), lower bound is not applied.
 
 # number of grid cells
-1. nx, ny, nz:			50, 50, 25
+1. nx, ny, nz:			40, 40, 20
 
 # x, y, z range
 2. x, y, zrange (km):	-2., 2., -2., 2., 0., -2.
@@ -26,5 +28,5 @@
 5. mu:					1.0
 
 # nu, beta0, rho0
-6. nu, beta0, rho0:		1.0, 0., 0.
+6. nu, beta0, rho0:		-1.0, 0., 0.
 
