@@ -51,9 +51,9 @@ After running "make", "make install" creates the inversion program "jinv", the $
            -x (output kernel matrices)
            -h (show this message)
 
-The options -l and -a specify the regularization parameters $\lambda_1$ and $\lambda_2$.
+The -l and -a options specify the regularization parameters $\lambda_1$ and $\lambda_2$.
 
-The option -l specifies
+The -l option specifies
 
 $\log_{10}(\lambda_1):\log_{10}(\lambda_2)$,
 
@@ -61,11 +61,11 @@ while -a specifies
 
 $\alpha:\log_{10}(\lambda)$
 
-where $\lambda$ is the regularization parameter and $\alpha$ is the mixing ratio of $L_2$ norm and group lasso penalty as the following:
+where $\lambda$ is the regularization parameter and $\alpha$ is the mixing ratio of the $L_2$ norm and the group lasso penalty as the following:
 
 $\lambda_1=\alpha\cdot\lambda,\quad \lambda_2=(1-\alpha)\cdot\lambda$
 
-These options -l and -a cannot be specified simultaneously.
+These options -l and -a cannot be used together.
 
 The format of the input magnetic and gravity anomaly data file is
 
