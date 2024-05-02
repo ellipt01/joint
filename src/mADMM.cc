@@ -142,24 +142,6 @@ mADMM::recover (mm_real *f, mm_real *g)
 	return;
 }
 
-// read _Ci_ from file
-void
-mADMM::fread_Cinv (FILE *fp)
-{
-	_CXi_ = mm_real_fread_binary (fp);
-	if (_CXi_ == NULL) throw std::runtime_error ("fread CXinv failed");
-	_CYi_ = mm_real_fread_binary (fp);
-	if (_CYi_ == NULL) throw std::runtime_error ("fread CYinv failed");
-}
-
-// write _Ci_ to file
-void
-mADMM::fwrite_Cinv (FILE *fp)
-{
-	if (_CXi_) mm_real_fwrite_binary (fp, _CXi_);
-	if (_CYi_) mm_real_fwrite_binary (fp, _CYi_);
-}
-
 /*** protected methods ***/
 // initialize beta, rho, s, and u
 void
@@ -170,14 +152,17 @@ mADMM::_initialize_ ()
 	_residual_ = 0.;
 
 	// allocate and initialize
+	// magnetization
 	if (_beta_) mm_real_free (_beta_);
 	_beta_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 	mm_real_set_all (_beta_, 0.);
 
+	// density
 	if (_rho_) mm_real_free (_rho_);
 	_rho_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 	mm_real_set_all (_rho_, 0.);
 
+	// backup
 	if (_beta_prev_) mm_real_free (_beta_prev_);
 	_beta_prev_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 	mm_real_set_all (_beta_prev_, 0.);
@@ -186,19 +171,22 @@ mADMM::_initialize_ ()
 	_rho_prev_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 	mm_real_set_all (_rho_prev_, 0.);
 
+	// slack vector introduced to separate penalty
 	if (_s_) mm_real_free (_s_);
 	_s_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
 	mm_real_set_all (_s_, 0.);
 
+	// Lagrange dual
 	if (_u_) mm_real_free (_u_); 
 	_u_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
 	mm_real_set_all (_u_, 0.);
 
 	if (_apply_lower_bound_) {
+		// slack vector
 		if (_t_) mm_real_free (_t_);
 		_t_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
 		mm_real_set_all (_t_, 0.);
-
+		// Lagrange dual
 		if (_v_) mm_real_free (_v_); 
 		_v_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
 		mm_real_set_all (_v_, 0.);
@@ -222,14 +210,14 @@ void
 mADMM::_update_bx_ ()
 {
 	// bx = X.T * f + mu * (s + u)[1:M]
-	if (_bx_ == NULL) _bx_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _X_->n, 1, _X_->n);
+	if (_bx_ == NULL) _bx_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 	if (_cx_ == NULL) {
-		_cx_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _X_->n, 1, _X_->n);
+		_cx_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 		mm_real_x_dot_yk (true, 1., _X_, _f_, 0, 0., _cx_);
 	}
-	for (size_t i = 0; i < _bx_->m; i++) _bx_->data[i] = _cx_->data[i] + _mu_ * (_s_->data[i] + _u_->data[i]);
+	for (size_t i = 0; i < _size2_; i++) _bx_->data[i] = _cx_->data[i] + _mu_ * (_s_->data[i] + _u_->data[i]);
 	if (_apply_lower_bound_) {
-		for (size_t i = 0; i < _bx_->m; i++) _bx_->data[i] += _nu_ * (_t_->data[i] + _v_->data[i]);
+		for (size_t i = 0; i < _size2_; i++) _bx_->data[i] += _nu_ * (_t_->data[i] + _v_->data[i]);
 	}
 }
 
@@ -237,14 +225,14 @@ void
 mADMM::_update_by_ ()
 {
 	// by = Y.T * g + mu * (s + u)[M:2*M]
-	if (_by_ == NULL) _by_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _Y_->n, 1, _Y_->n);
+	if (_by_ == NULL) _by_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 	if (_cy_ == NULL) {
-		_cy_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _Y_->n, 1, _Y_->n);
+		_cy_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 		mm_real_x_dot_yk (true, 1., _Y_, _g_, 0, 0., _cy_);
 	}
-	for (size_t i = 0; i < _by_->m; i++) _by_->data[i] = _cy_->data[i] + _mu_ * (_s_->data[i + _size2_] + _u_->data[i + _size2_]);
+	for (size_t i = 0; i < _size2_; i++) _by_->data[i] = _cy_->data[i] + _mu_ * (_s_->data[i + _size2_] + _u_->data[i + _size2_]);
 	if (_apply_lower_bound_) {
-		for (size_t i = 0; i < _by_->m; i++) _by_->data[i] += _nu_ * (_t_->data[i + _size2_] + _v_->data[i + _size2_]);
+		for (size_t i = 0; i < _size2_; i++) _by_->data[i] += _nu_ * (_t_->data[i + _size2_] + _v_->data[i + _size2_]);
 	}
 }
 
@@ -320,6 +308,7 @@ mADMM::_update_t_ ()
 void
 mADMM::_update_u_ ()
 {
+#pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
 		_u_->data[j] += _mu_ * (_s_->data[j] - _beta_->data[j]);
 		_u_->data[j + _size2_] += _mu_ * (_s_->data[j + _size2_] - _rho_->data[j]); 
@@ -330,6 +319,7 @@ mADMM::_update_u_ ()
 void
 mADMM::_update_v_ ()
 {
+#pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
 		_v_->data[j] += _nu_ * (_t_->data[j] - _beta_->data[j]);
 		_v_->data[j + _size2_] += _nu_ * (_t_->data[j + _size2_] - _rho_->data[j]); 

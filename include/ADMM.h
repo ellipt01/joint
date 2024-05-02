@@ -50,10 +50,6 @@ public:
 
 	mm_real	*get_zeta ();
 
-	mm_real	*get_s () { return _s_; }
-	mm_real	*get_t () { return _t_; }
-	mm_real	*get_u () { return _u_; }
-	mm_real	*get_v () { return _v_; }
 	mm_real	*get_w () { return _w_; } // weight for kernel matrix
 	mm_real	*get_Ci () { return _Ci_; } // inverse of kernel matrix
 
@@ -66,9 +62,6 @@ public:
 	double	residual () { return _residual_; }
 
 	mm_real	*recover ();
-
-	void	fread_Cinv (FILE *fp);
-	void	fwrite_Cinv (FILE *fp);
 
 protected:
 	void	_initialize_ (); 	// initialize zeta, s, and u

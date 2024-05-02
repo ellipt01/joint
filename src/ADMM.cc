@@ -118,21 +118,6 @@ ADMM::recover ()
 	return f;
 }
 
-// read _Ci_ from file
-void
-ADMM::fread_Cinv (FILE *fp)
-{
-	_Ci_ = mm_real_fread_binary (fp);
-	if (_Ci_ == NULL) throw std::runtime_error ("fread CXinv failed");
-}
-
-// write _Ci_ to file
-void
-ADMM::fwrite_Cinv (FILE *fp)
-{
-	if (_Ci_) mm_real_fwrite_binary (fp, _Ci_);
-}
-
 /*** protected methods ***/
 // initialize zeta, s, and u,
 // also t and v when bound constraint is applied

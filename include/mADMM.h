@@ -54,8 +54,6 @@ public:
 	mm_real	*get_beta ();
 	mm_real	*get_rho ();
 
-	mm_real	*get_t () { return _s_; }
-	mm_real	*get_v () { return _u_; }
 	mm_real	*get_wx () { return _wx_; } // weight for magkernel matrix
 	mm_real	*get_wy () { return _wy_; } // weight for grvkernel matrix
 	mm_real	*get_CXi () { return _CXi_; } // inverse for magkernel matrix
@@ -70,9 +68,6 @@ public:
 	double	residual () { return _residual_; }
 
 	void	recover (mm_real *f, mm_real *g);
-
-	void	fread_Cinv (FILE *fp);
-	void	fwrite_Cinv (FILE *fp);
 
 protected:
 	void	_initialize_ (); // initialize zeta, t, and v
