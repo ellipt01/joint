@@ -2,13 +2,19 @@
 #include <cmath>
 #include <cfloat>
 
-#include <mkl_blas.h>
-#include <mkl_lapack.h>
-
 #include "mgcal.h"
 #include "mmreal.h"
 #include "ADMM.h"
 #include "util.h"
+
+#ifdef __cplusplus
+	extern "C" {
+#endif // __cplusplus
+
+int		dpotrf_ (char *uplo, long *n, double *a, long *lda, long *nfo);
+int		dpotri_ (char *uplo, long *n, double *a, long *lda, long *nfo);
+int		dgetrf_ (long *m, long *n, double *a, long *lda, long *ipiv, long *info);
+int		dgetri_ (long *n, double *a, long *m, long *ipiv, double *work, long *lwork, long *info);
 
 /*** public methods ***/
 ADMM::ADMM (double lambda1, double lambda2, double mu)
@@ -308,28 +314,28 @@ void
 ADMM::_cholinv_ (mm_real *C)
 {
 	char	uplo = (C->symm == MM_REAL_SYMMETRIC_UPPER) ? 'U' : 'L';
-	int		info;
-	dpotrf_ (&uplo, (int *) &C->m, C->data, (int *) &C->m, &info);
-	dpotri_ (&uplo, (int *) &C->m, C->data, (int *) &C->m, &info);
+	long	info;
+	dpotrf_ (&uplo, &C->m, C->data, &C->m, &info);
+	dpotri_ (&uplo, &C->m, C->data, &C->m, &info);
 }
 
 // compute inverse using dgetrf and dgetri (LU)
 void
 ADMM::_LUinv_ (mm_real *C)
 {
-	int		info;
-	size_t	m = C->m;
-	size_t	n = C->n;
+	long	info;
+	long	m = C->m;
+	long	n = C->n;
 	size_t	min_mn = (m < n) ? m : n; 
-	int	*ipiv = new int [min_mn];
-	dgetrf_ ((int *) &m, (int *) &n, C->data, (int *) &m, ipiv, &info);
+	long	*ipiv = new long [min_mn];
+	dgetrf_ (&m, &n, C->data, &m, ipiv, &info);
 
 	double	w;
-	int		lwork = -1;
-	dgetri_ ((int *) &n, C->data, (int *) &m, ipiv, &w, &lwork, &info);
-	lwork = (int) w;
+	long	lwork = -1;
+	dgetri_ (&n, C->data, &m, ipiv, &w, &lwork, &info);
+	lwork = (long) w;
 	double	*work = new double [lwork];
-	dgetri_ ((int *) &n, C->data, (int *) &m, ipiv, work, &lwork, &info);
+	dgetri_ (&n, C->data, &m, ipiv, work, &lwork, &info);
 
 	delete [] ipiv;
 	delete [] work;
@@ -415,4 +421,7 @@ ADMM::__init__ ()
 	_Ci_ = NULL;
 }
 
+#ifdef __cplusplus
+	}
+#endif // __cplusplus
 

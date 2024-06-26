@@ -1,8 +1,5 @@
 #include <iostream>
 
-#include <mkl_blas.h>
-#include <mkl_lapack.h>
-
 #include "mgcal.h"
 #include "mmreal.h"
 
