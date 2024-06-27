@@ -12,7 +12,7 @@ CPPFLAGS	= -I. -I./include $(BLAS_CFLAGS)\
 COMMON_OBJS	= 
 
 JINV_OBJS	= src/main.o src/Joint.o src/Inversion.o src/ADMM.o src/mADMM.o\
-			  src/Kernel.o src/util.o
+			  src/Kernel.o src/utils.o
 
 OBJS		= $(JINV_OBJS) $(COMMON_OBJS)
 

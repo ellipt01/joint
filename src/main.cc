@@ -8,7 +8,6 @@
 #include "mADMM.h"
 #include "Inversion.h"
 #include "Joint.h"
-#include "util.h"
 
 int
 main (int argc, char **argv)

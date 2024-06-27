@@ -10,7 +10,7 @@
 #include "mADMM.h"
 #include "Inversion.h"
 #include "Joint.h"
-#include "util.h"
+#include "utils.h"
 
 /*** public methods ***/
 void

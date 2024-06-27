@@ -5,7 +5,6 @@
 #include "mgcal.h"
 #include "mmreal.h"
 #include "ADMM.h"
-#include "util.h"
 
 #ifdef __cplusplus
 	extern "C" {

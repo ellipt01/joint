@@ -6,7 +6,6 @@
 #include "mmreal.h"
 #include "ADMM.h"
 #include "mADMM.h"
-#include "util.h"
 
 /*** public methods ***/
 mADMM::mADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower)

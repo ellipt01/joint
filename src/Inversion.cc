@@ -7,7 +7,6 @@
 
 #include "Kernel.h"
 #include "Inversion.h"
-#include "util.h"
 
 /*** public methods ***/
 
