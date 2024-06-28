@@ -20,6 +20,9 @@ class Joint : public Inversion
 	mm_real		*_g_;
 	mm_real		*_G_;
 
+	MagKernel	*_magker_; 
+	GravKernel	*_grvker_; 
+
 	mADMM		*_admm_;
 
 public:

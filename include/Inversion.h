@@ -44,9 +44,6 @@ protected:
 	double		_tolerance_;
 	size_t		_maxiter_;
 
-	MagKernel	*_magker_; 
-	GravKernel	*_grvker_; 
-
 	size_t		_niter_;
 
 	bool		_export_matrix_;
