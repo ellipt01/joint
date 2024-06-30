@@ -8,9 +8,14 @@
 #include "mADMM.h"
 
 /*** public methods ***/
+mADMM::mADMM (double lambda1, double lambda2, double mu)
+{
+	mADMM (lambda1, lambda2, mu, -1., NULL);
+}
+
 mADMM::mADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower)
 {
-	__init__ ();
+	mADMM ();
 	_mu_ = mu;
 
 	if (nu > 0. && lower != NULL) {

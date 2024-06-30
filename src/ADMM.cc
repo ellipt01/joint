@@ -18,14 +18,12 @@ int		dgetri_ (long *n, double *a, long *m, long *ipiv, double *work, long *lwork
 /*** public methods ***/
 ADMM::ADMM (double lambda1, double lambda2, double mu)
 {
-	__init__ ();
-	_mu_ = mu;
-	set_params (lambda1, lambda2);
+	ADMM (lambda1, lambda2, mu, -1., NULL);
 }
 
 ADMM::ADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower)
 {
-	__init__ ();
+	ADMM ();
 	_mu_ = mu;
 
 	if (nu > 0. && lower != NULL) {
