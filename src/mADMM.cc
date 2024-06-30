@@ -15,7 +15,7 @@ mADMM::mADMM (double lambda1, double lambda2, double mu)
 
 mADMM::mADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower)
 {
-	mADMM ();
+	__init__ ();
 	_mu_ = mu;
 
 	if (nu > 0. && lower != NULL) {

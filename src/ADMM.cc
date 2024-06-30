@@ -23,7 +23,7 @@ ADMM::ADMM (double lambda1, double lambda2, double mu)
 
 ADMM::ADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower)
 {
-	ADMM ();
+	__init__ ();
 	_mu_ = mu;
 
 	if (nu > 0. && lower != NULL) {

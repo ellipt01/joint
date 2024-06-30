@@ -44,7 +44,7 @@ class ADMM {
 	double	_residual_;
 
 public:
-	ADMM () { __init__ (); }
+	ADMM () {}
 	ADMM (double lambda1, double lambda2, double mu);
 	ADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower);
 

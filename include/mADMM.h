@@ -49,7 +49,7 @@ class mADMM : public ADMM {
 	double	_residual_;
 
 public:
-	mADMM () { __init__ (); }
+	mADMM () {}
 	mADMM (double lambda1, double lambda2, double mu);
 	mADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower);
 
