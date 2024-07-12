@@ -3,7 +3,7 @@
 
 /*** A class implements the Alternative Direction Method of Multiplier (ADMM) ***/
 class ADMM {
-
+protected:
 	size_t	_size1_;	// num of row of the kernel matrix
 	size_t	_size2_;	// num of columns
 

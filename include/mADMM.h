@@ -3,18 +3,6 @@
 
 class mADMM : public ADMM {
 
-	size_t	_size1_;	// num of row of the kernel matrix
-	size_t	_size2_;	// num of columns
-
-	double	_lambda1_;	// regularization parameter for group lasso penalty
-	double	_lambda2_;	// regularization parameter for L2 norm penalty
-
-	double	_mu_;		// penalty parameter for regularization
-
-	double	_nu_;		// penalty parameter for lower bound
-	mm_real	*_lower_;	// lower bound
-	bool	_apply_lower_bound_;
-
 	// input data
 	mm_real	*_f_;		// magnetic anomaly
 	mm_real	*_g_;		// gravity anomaly
@@ -61,7 +49,6 @@ public:
 	mm_real	*get_CXi () { return _CXi_; } // inverse for magkernel matrix
 	mm_real	*get_CYi () { return _CYi_; } //             grvkernel matrix
 
-	void	set_params (double lambda1, double lambda2);
 	void	simeq (mm_real *f, mm_real *g, mm_real *X, mm_real *Y, bool normalize);
 
 	size_t	start (const double tol, const size_t maxiter);
