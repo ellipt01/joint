@@ -29,6 +29,7 @@ Joint::usage ()
 	fprintf (stderr, "       -t <terrain filename>\n");
 	fprintf (stderr, "       -s <setting filename:default is settings.par>\n");
 	fprintf (stderr, "       -x (export kernel matrices)\n");
+	fprintf (stderr, "       -v (verbos mode)\n");
 	fprintf (stderr, "       -h (show this message)\n");
 	fprintf (stderr, "[notice]\n");
 	fprintf (stderr, "       If log10(lambda) <= -16, lambda is set to 0.\n");
@@ -80,7 +81,7 @@ Joint::start (bool normalize)
 	}
 	// export weight for kernel matrix
 	export_weight ();
-	return _admm_->start (_tolerance_, _maxiter_);
+	return _admm_->start (_tolerance_, _maxiter_, _verbos_);
 }
 
 size_t
@@ -202,7 +203,7 @@ Joint::read_inline (int argc, char **argv)
 	double	log10_lambda, log10_lambda1, log10_lambda2;
 
 	char	opt;
-	while ((opt = getopt (argc, argv, ":f:g:l:a:s:t:xh")) != -1) {
+	while ((opt = getopt (argc, argv, ":f:g:l:a:s:t:xvh")) != -1) {
 		switch (opt) {
 			case 'f':
 				strcpy (_fn_mag_, optarg);
@@ -244,6 +245,10 @@ Joint::read_inline (int argc, char **argv)
 
 			case 'x':
 				_export_matrix_ = true;
+				break;
+
+			case 'v':
+				_verbos_ = true;
 				break;
 
 			case 'h':
@@ -510,6 +515,7 @@ Joint::__init__ ()
 	_admm_ = NULL;
 
 	_export_matrix_ = false;
+	_verbos_ = false;
 }
 
 

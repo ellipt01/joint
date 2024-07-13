@@ -65,6 +65,7 @@ class Joint
 	size_t		_niter_;
 
 	bool		_export_matrix_;
+	bool		_verbos_;
 
 public:
 	Joint () { __init__ (); }

@@ -85,7 +85,7 @@ ADMM::get_zeta ()
 
 // start ADMM iteration
 size_t
-ADMM::start (const double tol, const size_t maxiter)
+ADMM::start (const double tol, const size_t maxiter, bool verbos)
 {
 	size_t	k;
 	for (k = 0; k < maxiter; k++) {
@@ -93,12 +93,8 @@ ADMM::start (const double tol, const size_t maxiter)
 		_one_cycle_ ();
 
 		_residual_ = _eval_residuals_ ();
-#ifdef VERBOS
-		if (k % 100 == 0) {
+		if (verbos && k % 100 == 0)
 			fprintf (stderr, "residual[%ld] = %.4e / %.4e\n", k, _residual_, tol);
-			check_mem (NULL);
-		}
-#endif
 		if (_residual_ < tol) break;
 	}
 	return k;

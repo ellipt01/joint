@@ -56,7 +56,8 @@ public:
 	void	set_params (double lambda1, double lambda2);
 	void	simeq (mm_real *f, mm_real *X, bool normalize);
 
-	size_t	start (const double tol, const size_t maxiter);
+	size_t	start (const double tol, const size_t maxiter) { return start (tol, maxiter, false); };
+	size_t	start (const double tol, const size_t maxiter, bool verbos);
 	size_t	restart (const double tol, const size_t maxiter);
 
 	double	residual () { return _residual_; }

@@ -51,7 +51,8 @@ public:
 
 	void	simeq (mm_real *f, mm_real *g, mm_real *X, mm_real *Y, bool normalize);
 
-	size_t	start (const double tol, const size_t maxiter);
+	size_t	start (const double tol, const size_t maxiter) { return start (tol, maxiter, false); };
+	size_t	start (const double tol, const size_t maxiter, bool verbos);
 	size_t	restart (const double tol, const size_t maxiter);
 
 	double	residual () { return _residual_; }
