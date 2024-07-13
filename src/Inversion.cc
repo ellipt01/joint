@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include <unistd.h>
+#include <cfloat>
 
 #include "mgcal.h"
 #include "mmreal.h"
@@ -35,8 +36,6 @@ Inversion::__init__ ()
 	_nz_ = -1;
 
 	_mu_ = 1.;
-	_nu_ = -1.;
-	_lower_ = NULL;
 
 	_zsurf_ = NULL;
 

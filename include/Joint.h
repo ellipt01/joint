@@ -7,8 +7,10 @@ class Joint : public Inversion
 	char		_fn_mag_[256];
 	char		_fn_grv_[256];
 
+	double		_nu_;
 	double		_beta_lower_;
 	double		_rho_lower_;
+	mm_real		*_lower_;
 
 	data_array	*_magdata_;
 	data_array	*_grvdata_;

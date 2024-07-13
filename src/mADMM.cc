@@ -18,7 +18,7 @@ mADMM::mADMM (double lambda1, double lambda2, double mu, double nu, mm_real *low
 	__init__ ();
 	_mu_ = mu;
 
-	if (nu > 0. && lower != NULL) {
+	if (nu > DBL_EPSILON && lower != NULL) {
 		_nu_ = nu;
 		_lower_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, lower->m, lower->n, lower->nnz);
 		mm_real_memcpy (_lower_, lower);
@@ -26,13 +26,6 @@ mADMM::mADMM (double lambda1, double lambda2, double mu, double nu, mm_real *low
 	}
 
 	set_params (lambda1, lambda2);
-}
-
-void
-mADMM::set_params (double lambda1, double lambda2)
-{
-	_lambda1_ = lambda1;
-	_lambda2_ = lambda2;
 }
 
 // set simultaneous equations to be solved

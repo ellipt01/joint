@@ -23,9 +23,6 @@ protected:
 
 	double		_mu_;
 
-	double		_nu_;
-	mm_real		*_lower_;
-
 	double		_exf_inc_;
 	double		_exf_dec_;
 

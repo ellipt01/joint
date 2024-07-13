@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include <unistd.h>
+#include <cfloat>
 
 #include "mgcal.h"
 #include "mmreal.h"
@@ -16,6 +17,10 @@
 void
 Joint::usage ()
 {
+	fprintf (stderr, "===== DESCRIPTION =====\n");
+	fprintf (stderr, "This program performs joint inversion of magnetic and gravity data\n");
+	fprintf (stderr, "based on L2 norm and group lasso combined regularization.\n\n");	
+
 	fprintf (stderr, "USAGE: %s\n", _toolname_);
 	fprintf (stderr, "       -f <magnetic anomaly filename>\n");
 	fprintf (stderr, "       -g <gravitic anomaly filename>\n");
@@ -149,7 +154,7 @@ Joint::fwrite_settings (FILE *stream)
 	fprintf (stream, "mag:inc,dec:\t%.4f,%.4f\n", _mgz_inc_, _mgz_dec_);
 	fprintf (stream, "tol,maxiter:\t%.2e,%ld\n", _tolerance_, _maxiter_);
 	fprintf (stream, "mu:\t\t%.4f\n", _mu_);
-	if (_nu_ > 0.)
+	if (_nu_ > DBL_EPSILON)
 		fprintf (stream, "nu:\t\t%.4f:lower bounds = %.4f, %.4f\n", _nu_, _beta_lower_, _rho_lower_);
 }
 
@@ -346,7 +351,7 @@ void
 Joint::simeq ()
 {
 	read_data ();
-	if (_nu_ > 0.) set_lower_bounds ();
+	if (_nu_ > DBL_EPSILON) set_lower_bounds ();
 
 	if (_fn_ter_ != NULL) {
 		size_t	c = count (_fn_ter_);
@@ -463,7 +468,7 @@ Joint::__init__ ()
 	_nz_ = -1;
 
 	_mu_ = 1.;
-	_nu_ = -1.;
+	_nu_ = 0.;
 	_lower_ = NULL;
 
 	_zsurf_ = NULL;

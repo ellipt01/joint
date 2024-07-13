@@ -10,7 +10,7 @@
 # 5. penaltyn parameter: mu
 # 6. bound-constraint:
 #	 penalty param(nu),lower-bound for magnetization(beta0:A/m),and density(rho0:g/cm^3)
-#	 if nu=-1 (or <0), lower bound is not applied.
+#	 if nu =< 0, lower bound is not applied.
 
 # number of grid cells
 1. nx, ny, nz:			40, 40, 20
@@ -28,5 +28,5 @@
 5. mu:					1.0
 
 # nu, beta0, rho0
-6. nu, beta0, rho0:		-1.0, 0., 0.
+6. nu, beta0, rho0:		0., 0., 0.
 
