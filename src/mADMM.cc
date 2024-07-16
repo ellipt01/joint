@@ -378,11 +378,6 @@ mADMM::__init__ ()
 	_wx_ = NULL;
 	_wy_ = NULL;
 
-	_mu_ = 0.;
-	_nu_ = 0.;
-	_apply_lower_bound_ = false;
-	_lower_ = NULL;
-
 	_beta_ = NULL;
 	_rho_ = NULL;
 
