@@ -190,7 +190,6 @@ void
 ADMM::_update_zeta_ ()
 {
 	if (_Ci_ == NULL) _calc_Ci_ ();
-	_update_b_ ();
 	if (_zeta_) {
 		mm_real_memcpy (_zeta_prev_, _zeta_);
 		mm_real_free (_zeta_);
@@ -248,6 +247,7 @@ ADMM::_update_v_ ()
 void
 ADMM::_one_cycle_ ()
 {
+	_update_b_ ();
 	_update_zeta_ ();
 	_update_s_ ();
 	_update_u_ ();
@@ -257,6 +257,10 @@ ADMM::_one_cycle_ ()
 	}
 }
 
+/*
+	evaluate current residual dr:
+	dr = MAX (||s - zeta|| / sqrt (M), mu * ||zeta - zeta_prev|| / sqrt (M))
+ */
 double
 ADMM::_eval_residuals_ ()
 {
@@ -388,6 +392,7 @@ ADMM::_inv_SMW_ (double coef, mm_real *K, mm_real *Ci, mm_real *b)
 void
 ADMM::__init__ ()
 {
+std::cout << "ADMM__init__" << std::endl;
 	_size1_ = 0;
 	_size2_ = 0;
 

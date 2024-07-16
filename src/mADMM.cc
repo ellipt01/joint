@@ -366,9 +366,6 @@ mADMM::_soft_threshold_ (double gamma, double lambda)
 void
 mADMM::__init__ ()
 {
-	_size1_ = 0;
-	_size2_ = 0;
-
 	_f_ = NULL;
 	_g_ = NULL;
 
@@ -383,12 +380,6 @@ mADMM::__init__ ()
 
 	_beta_prev_ = NULL;
 	_rho_prev_ = NULL;
-
-	_s_ = NULL;
-	_u_ = NULL;
-
-	_t_ = NULL;
-	_v_ = NULL;
 
 	_cx_ = NULL;
 	_cy_ = NULL;

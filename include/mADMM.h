@@ -21,12 +21,6 @@ class mADMM : public ADMM {
 	mm_real	*_beta_prev_;	// backup magnetization
 	mm_real	*_rho_prev_;	// backup density
 
-	mm_real	*_s_;		// slack variable for regularization
-	mm_real	*_t_;		// slack variable for lower bound
-
-	mm_real	*_u_;		// Lagrange dual
-	mm_real	*_v_;
-
 	mm_real	*_cx_;		// = X.T * f
 	mm_real	*_cy_;		// = Y.T * g
 	mm_real	*_bx_;		// = cx + mu * (s + u)[1:size2] + nu * (t + v)[1:size2]
@@ -37,7 +31,7 @@ class mADMM : public ADMM {
 	double	_residual_;
 
 public:
-	mADMM () {}
+	mADMM () { __init__ (); }
 	mADMM (double lambda1, double lambda2, double mu);
 	mADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower);
 
