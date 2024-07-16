@@ -1,6 +1,50 @@
 #ifndef _MADMM_H_
 #define _MADMM_H_
 
+/***
+	mADMM: class implements the Alternative Direction Method of Multiplier (ADMM)
+	for magnetic and gravity joint inversion
+
+	This class is designed for solving a linear problem
+	with L2 norm and group lasso combined regularization:
+	
+	min (1/2) ||b - Z * zeta||^2 + lambda1 * sum_j=0^M ||zeta_gj|| + lambda2 ||zeta||^2/2,
+	
+	where b = [f; g], and Z = [X;Y], and f and g are the observed magnetic and gravity data,
+	and K and Y are the magnetic and gravity kernel matrices.
+	zeta = [beta; rho] and beta and rho are magnetization and density model vectors, respectively.
+
+	||a|| indicates the Euclidean norm of a vector a, and the second term of this
+	objective function is the group lasso penalty.
+	M is the number of the grid cells dividing the subsurface model space.
+
+	mADMM search an optimal solution of the above by replacing the problem as following:
+	
+	min (1/2) ||b - Z * zeta||^2 + lambda1 * sum_j=0^M ||s_gj|| + lambda2 ||s||^2/2 s.t. s = zeta
+	
+	where s is a slack vector.
+	The augmented Lagrange function of this problem is
+	
+	L = (1/2) ||b - Z * zeta||^2 + lambda1 * sum_j=0^M ||s_gj|| + lambda2 ||s||^2/2
+		+ (mu / 2) * ||s - zeta + u||^2,
+
+	where u is the Lagrange dual vector.
+	
+	mADMM solves this problem by the following coordinate descent,
+	e.g. repeat the following cycle until solution converged:
+	
+	1. update zeta: zeta^{k+1} = (Z.T * Z + mu * I)^-1 * {Z.T * b + mu * (s^k - u^k)}
+	2. update s: s^{k+1} = (mu / (mu + lambda2)) * S(zeta^{k+1} - u^k, lambda1 / mu),
+	   where S() is a soft threshold operator of the L1-L2 norm lenalty,
+	3. update u by the multiplyer method: u^{k+1} = u^k + mu * (s^{k+1} - zeta^{l+1}),
+
+	where a^k is the vector obtained by the k-th iteration.
+	the steps 1, 2, and 3 of above are implemented by
+	_update_b_ () and _update_zeta (),
+	_update_s_ (), 
+	and
+	_update_u_ ().
+***/
 class mADMM : public ADMM {
 
 	// input data

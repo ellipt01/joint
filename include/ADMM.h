@@ -2,7 +2,7 @@
 #define _ADMM_H_
 
 /***
-	class implements the Alternative Direction Method of Multiplier (ADMM) 
+	ADMM: class implements the Alternative Direction Method of Multiplier (ADMM) 
 
 	This class is designed for solving a linear problem
 	with L1-L2 norm regularization:
@@ -11,16 +11,23 @@
 
 	where ||a|| indicates the Euclidean norm, and |a| is the absolute norm of a vector a.
 
-	ADMM search an optimal solution of the above by replacing the problem as following:
+	Instead to minimize this objective function, ADMM search an optimal solution
+	of the following constrained optimization problem:
 	
-	min (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 ||s||^2/2 s.t. s = zeta
+	min (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 ||s||^2/2 s.t. s = zeta,
 	
-	where s is a slack variable(vector) and u is a Lagrange coefficient(vector).
+	where s is a slack vector.
+	The augmented Lagrange function of this problem is
 	
-	ADMM solves this problem by the following coordinate descent,
+	L = (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 ||s||^2/2
+		+ (mu / 2) * ||s - zeta + u||^2,
+
+	where u is the Lagrange dual vector.
+	
+	ADMM minimize this function  by the following coordinate descent method,
 	e.g. repeat the following cycle until solution converged:
 	
-	1. update zeta: zeta^{k+1} = (X.T * X + mu * I)^-1 * (X.T * f + mu * (s^k - u^k)
+	1. update zeta: zeta^{k+1} = (X.T * X + mu * I)^-1 * {X.T * f + mu * (s^k - u^k)}
 	2. update s: s^{k+1} = (mu / (mu + lambda2)) * S(zeta^{k+1} - u^k, lambda1 / mu),
 	   where S() is a soft threshold operator of the L1-L2 norm lenalty,
 	3. update u by the multiplyer method: u^{k+1} = u^k + mu * (s^{k+1} - zeta^{l+1}),
