@@ -99,6 +99,7 @@ mADMM::get_rho ()
 size_t
 mADMM::start (const double tol, const size_t maxiter, bool verbos)
 {
+	// tol: tolerance, maxiter: maximum number of ADMM iterations
 	size_t	k;
 	for (k = 0; k < maxiter; k++) {
 
@@ -133,7 +134,8 @@ mADMM::recover (mm_real *f, mm_real *g)
 }
 
 /*** protected methods ***/
-// initialize beta, rho, s, and u
+// initialize beta, rho, s, and u by padding 0,
+// also t and v are initialized when bound constraint is applied
 void
 mADMM::_initialize_ ()
 {
@@ -171,8 +173,9 @@ mADMM::_initialize_ ()
 	_u_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
 	mm_real_set_all (_u_, 0.);
 
+	// lower bound onstraint
 	if (_apply_lower_bound_) {
-		// slack vector
+		// slack vector for bound constraint
 		if (_t_) mm_real_free (_t_);
 		_t_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
 		mm_real_set_all (_t_, 0.);
@@ -259,7 +262,7 @@ mADMM::_update_zeta_ ()
 }
 
 // update s:
-// s[gk] = C1 * (1 + C2 / (mu * || q[gk] ||))_+ * q[gk], q = zeta - v
+// s[gk] = C1 * (1 + lambda1 / (mu * || q[gk] ||))_+ * q[gk], q = zeta - v
 void
 mADMM::_update_s_ ()
 {
@@ -270,8 +273,8 @@ mADMM::_update_s_ ()
 
 		double	q1 = _beta_->data[j] - _u_->data[j];
 		double	q2 = _rho_->data[j] - _u_->data[j + _size2_];
-		double	snrm = sqrt (pow (q1, 2.) + pow (q2, 2.));
-		double	l = _lambda1_ / (_mu_ * snrm);
+		double	qnrm = sqrt (pow (q1, 2.) + pow (q2, 2.));
+		double	l = _lambda1_ / (_mu_ * qnrm);
 		double	cj = _soft_threshold_ (1., l);
 		_s_->data[j] = ck * q1 * cj;
 		_s_->data[j + _size2_] = ck * q2 * cj;

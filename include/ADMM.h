@@ -2,16 +2,15 @@
 #define _ADMM_H_
 
 /***
-	ADMM: class implements the Alternative Direction Method of Multiplier (ADMM) 
+	ADMM: class implements the Alternative Direction Method of Multiplier (ADMM) algorithm
 
-	This class is designed for solving a linear problem
-	with L1-L2 norm regularization:
+	This class is designed for solving a linear problem with L1-L2 norm regularization:
 	
 	min (1/2) ||f - X * zeta||^2 + lambda1 * |zeta| + lambda2 ||zeta||^2/2
 
 	where ||a|| indicates the Euclidean norm, and |a| is the absolute norm of a vector a.
 
-	Instead to minimize this objective function, ADMM search an optimal solution
+	Instead to minimize this objective function, ADMM searchs an optimal solution
 	of the following constrained optimization problem:
 	
 	min (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 ||s||^2/2 s.t. s = zeta,
@@ -22,22 +21,37 @@
 	L = (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 ||s||^2/2
 		+ (mu / 2) * ||s - zeta + u||^2,
 
-	where u is the Lagrange dual vector.
+	where u is the Lagrange dual vector, and mu is a penalty parameter.
 	
-	ADMM minimize this function  by the following coordinate descent method,
-	e.g. repeat the following cycle until solution converged:
+	ADMM searhcs a model zeta which minimizes this function by the following
+	coordinate descent method, e.g. repeat the following cycle until converged:
 	
 	1. update zeta: zeta^{k+1} = (X.T * X + mu * I)^-1 * {X.T * f + mu * (s^k - u^k)}
 	2. update s: s^{k+1} = (mu / (mu + lambda2)) * S(zeta^{k+1} - u^k, lambda1 / mu),
-	   where S() is a soft threshold operator of the L1-L2 norm lenalty,
+	   where S() is a soft threshold operator of the L1-L2 norm penalty,
 	3. update u by the multiplyer method: u^{k+1} = u^k + mu * (s^{k+1} - zeta^{l+1}),
 
 	where a^k is the vector obtained by the k-th iteration.
 	the steps 1, 2, and 3 of above are implemented by
 	_update_b_ () and _update_zeta (),
-	_update_s_ (), 
-	and
-	_update_u_ ().
+	_update_s_ (), and _update_u_ ().
+
+	This class allows to apply lower bound constraint
+	
+	zeta_min <= zeta_i
+	
+	This is implemented by add the following cycle to the ADMM iteration:
+	4. update t: t_i^{k+1} = max(max (zeta_min, zeta_i^k - v_i^k)
+	5. update v: v^{k+1} = v^k + nu * (t^{k+1} - zeta^{k+1})
+
+	where t is a slack vector, v is a Lagrange vector, and nu is a penalty parameter
+	for the lower bound constraint.
+	step 4 and 5 are implemented by _update_t_ () and _update_v_ (),
+	and one cycle of the update is implemented by _one_cycle_ ().
+	
+	The steps 1-6 are repeated until solution converged, and this process is
+	implemented by start ().
+
 ***/
 class ADMM {
 protected:

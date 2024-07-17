@@ -87,6 +87,7 @@ ADMM::get_zeta ()
 size_t
 ADMM::start (const double tol, const size_t maxiter, bool verbos)
 {
+	// tol: tolerance, maxiter: maximum number of ADMM iterations
 	size_t	k;
 	for (k = 0; k < maxiter; k++) {
 
@@ -113,13 +114,13 @@ mm_real *
 ADMM::recover ()
 {
 	mm_real	*f = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size1_, 1, _size1_);
-	mm_real_x_dot_yk (false, 1., _X_, _zeta_, 0, 0., f);
+	mm_real_x_dot_yk (false, 1., _X_, _zeta_, 0, 0., f); // f = X * zeta
 	return f;
 }
 
 /*** protected methods ***/
-// initialize zeta, s, and u,
-// also t and v when bound constraint is applied
+// initialize zeta, s, and u by padding 0,
+// also t and v are initialized when bound constraint is applied
 void
 ADMM::_initialize_ ()
 {
@@ -128,28 +129,33 @@ ADMM::_initialize_ ()
 	_residual_ = 0.;
 
 	// allocate and initialize
+	// model vector
 	if (_zeta_) mm_real_free (_zeta_); 
 	_zeta_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 	mm_real_set_all (_zeta_, 0.);
 
+	// backup
 	if (_zeta_prev_) mm_real_free (_zeta_prev_);
 	_zeta_prev_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 	mm_real_set_all (_zeta_prev_, 0.);
 
+	// slack vector introduced to separate penalty
 	if (_s_) mm_real_free (_s_);
 	_s_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 	mm_real_set_all (_s_, 0.);
 
+	// Lagrange dual
 	if (_u_) mm_real_free (_u_);
 	_u_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 	mm_real_set_all (_u_, 0.);
 
 	// lower bound onstraint
 	if (_apply_lower_bound_) {
+		// slack vector for bound constraint
 		if (_t_) mm_real_free (_t_);
 		_t_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 		mm_real_set_all (_t_, 0.);
-
+		// Lagrange dual
 		if (_v_) mm_real_free (_v_);
 		_v_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
 		mm_real_set_all (_v_, 0.);
@@ -213,7 +219,7 @@ ADMM::_update_s_ ()
 	}
 }
 
-// update t:
+// update t: lower boubd constraint
 // t = max (lower, zeta - v)
 void
 ADMM::_update_t_ ()

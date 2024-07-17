@@ -1,7 +1,17 @@
 #ifndef _KERNEL_H_
 #define _KERNEL_H_
 
-/*** super class of kernel ***/
+/***
+	Kernel: super class of kernel matrix calculator
+
+	This class provides a template for calculating the kernel functions
+	used for magnetic and gravity inversion.
+
+	set_range (): Specify the range and number of subdivisions of the model space
+	set_data (): register observation data, locations, and altitudes.  
+	get (): compute kernel matrix and return it.
+
+***/
 class Kernel {
 
 protected:
@@ -41,11 +51,11 @@ public:
 	// set observed data
 	void	set_data (data_array *array);
 
-	// return grid object for model space
-	grid	*get_grid () { return _grd_; }
-
 	// compute and return kernel matrix
 	mm_real	*get ();
+
+	// return grid object of the model space
+	grid	*get_grid () { return _grd_; }
 
 	// fwrite model
 	void	fwrite (FILE *stream, mm_real *model);
@@ -60,7 +70,9 @@ private:
 	void	__init__ ();
 };
 
-/*** magnetic kernel ***/
+/***
+	MagKernel: class for computing magnetic kernel
+***/
 class MagKernel : public Kernel
 {
 
@@ -68,12 +80,14 @@ public:
 	MagKernel (double inc, double dec);
 	MagKernel (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec);
 
-	// set unit vector parallel to external field and magnetization
+	// set direction vector of external field and magnetization
 	void	set_exf (double inc, double dec);
 	void	set_mgz (double inc, double dec);
 };
 
-/*** gravity kernel ***/
+/***
+	GravKernel: class for computing gravity kernel
+***/
 class GravKernel : public Kernel
 {
 

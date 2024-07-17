@@ -2,48 +2,61 @@
 #define _MADMM_H_
 
 /***
-	mADMM: class implements the Alternative Direction Method of Multiplier (ADMM)
-	for magnetic and gravity joint inversion
+	mADMM: subclass of ADMM, and this class implements the Alternative Direction Method
+	       of Multiplier (ADMM) algorithm
 
-	This class is designed for solving a linear problem
-	with L2 norm and group lasso combined regularization:
+	This class is designed for solving a linear problem with L1-L2 norm regularization:
 	
 	min (1/2) ||b - Z * zeta||^2 + lambda1 * sum_j=0^M ||zeta_gj|| + lambda2 ||zeta||^2/2,
 	
 	where b = [f; g], and Z = [X;Y], and f and g are the observed magnetic and gravity data,
 	and K and Y are the magnetic and gravity kernel matrices.
 	zeta = [beta; rho] and beta and rho are magnetization and density model vectors, respectively.
+	The second term of the objective function is group lasso penalty,
+	and M is the number of the grid cells dividing the subsurface model space.
 
-	||a|| indicates the Euclidean norm of a vector a, and the second term of this
-	objective function is the group lasso penalty.
-	M is the number of the grid cells dividing the subsurface model space.
+	Instead to minimize this objective function, mADMM searchs an optimal solution
+	of the following constrained optimization problem:
 
-	mADMM search an optimal solution of the above by replacing the problem as following:
-	
 	min (1/2) ||b - Z * zeta||^2 + lambda1 * sum_j=0^M ||s_gj|| + lambda2 ||s||^2/2 s.t. s = zeta
 	
 	where s is a slack vector.
 	The augmented Lagrange function of this problem is
 	
-	L = (1/2) ||b - Z * zeta||^2 + lambda1 * sum_j=0^M ||s_gj|| + lambda2 ||s||^2/2
+	L = (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 ||s||^2/2
 		+ (mu / 2) * ||s - zeta + u||^2,
 
-	where u is the Lagrange dual vector.
+	where u is the Lagrange dual vector, and mu is a penalty parameter.
 	
-	mADMM solves this problem by the following coordinate descent,
-	e.g. repeat the following cycle until solution converged:
+	mADMM searhcs a model zeta which minimizes this function by the following
+	coordinate descent method, e.g. repeat the following cycle until converged:
 	
-	1. update zeta: zeta^{k+1} = (Z.T * Z + mu * I)^-1 * {Z.T * b + mu * (s^k - u^k)}
-	2. update s: s^{k+1} = (mu / (mu + lambda2)) * S(zeta^{k+1} - u^k, lambda1 / mu),
-	   where S() is a soft threshold operator of the L1-L2 norm lenalty,
+	1. update zeta: zeta^{k+1} = (X.T * X + mu * I)^-1 * {X.T * f + mu * (s^k - u^k)}
+	2. update s: s^{k+1}_gj = C * max (0, 1 + lambda1 / (mu * || q^k_gj ||)) * q^k_gj,
+	   where q^k = zeta^{k+1} - v^k, and C = mu / (mu + lambda2).
 	3. update u by the multiplyer method: u^{k+1} = u^k + mu * (s^{k+1} - zeta^{l+1}),
 
 	where a^k is the vector obtained by the k-th iteration.
 	the steps 1, 2, and 3 of above are implemented by
 	_update_b_ () and _update_zeta (),
-	_update_s_ (), 
-	and
-	_update_u_ ().
+	_update_s_ (), and _update_u_ ().
+
+	This class allows to apply lower bound constraint
+	
+	zeta_min <= zeta_i
+	
+	This is implemented by add the following cycle to the ADMM iteration:
+	4. update t: t_i^{k+1} = max(max (zeta_min, zeta_i^k - v_i^k)
+	5. update v: v^{k+1} = v^k + nu * (t^{k+1} - zeta^{k+1})
+
+	where t is a slack vector, v is a Lagrange vector, and nu is a penalty parameter
+	for the lower bound constraint.
+	step 4 and 5 are implemented by _update_t_ () and _update_v_ (),
+	and one cycle of the update is implemented by _one_cycle_ ().
+	
+	The steps 1-6 are repeated until solution converged, and this process is
+	implemented by start ().
+
 ***/
 class mADMM : public ADMM {
 
