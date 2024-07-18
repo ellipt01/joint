@@ -7,6 +7,23 @@ typedef enum {
 	DATA_TYPE_NONE = -1
 } data_type;
 
+/***
+	Joint: class of magnetic and gravity joint inversion
+
+	This class provides APIs for performing magnetic and gravity inversion
+	based on L2 norm and group lasso regularization.
+
+	*** flow of the processing ***
+	call the following methods:
+
+	prepare (): processing inline options and reading settings file.
+	start (): run joint inversion.
+
+	The following methods exports calculation results:
+	export_results (): output derived magnetization and density models,
+					   and recoverd magnetic and gravity anomalies.
+***/
+
 class Joint
 {
 	char		*_toolname_;
@@ -91,6 +108,7 @@ class Joint
 public:
 	Joint () { __init__ (); }
 
+	// get instances
 	double		get_alpha () { return _alpha_; }
 	double		get_lambda () { return _lambda_; }
 
@@ -100,43 +118,63 @@ public:
 	double		get_tolerance () { return _tolerance_; }
 	size_t		get_maxiter () { return _maxiter_; }
 
+	// display usage
 	void		usage ();
-	
+
+	// processing inline options and reading settings file
 	void		prepare (int argc, char **argv);
 
+	// performs inversion
 	size_t		start (bool normalize);
 	size_t		restart ();
 
+	// return major and dual residuals
 	double		residual ();
+
+	// recover input anomalies using derived model
 	void		recover (mm_real *f, mm_real *g);
 
+	// gtet model instances derived by the inversion
 	mm_real		*get_beta (); // = zeta[:m]
 	mm_real		*get_rho ();  // = zeta[m:]
 
+	// displays the settings specified
+	// in the inline options and the settings file.
 	void		fwrite_inline (FILE *stream);
 	void		fwrite_settings (FILE *stream);
 
+	// export calculation results
 	void		export_results ();
 
 protected:
-	void		read_inline (int argc, char **argv);
-	void		fread_settings (FILE *stream);
+	// read inline options
+	void		_read_inline_ (int argc, char **argv);
+	// read settings file
+	void		_fread_settings_ (FILE *stream);
 
-	void		read_data ();
-	void		set_lower_bounds ();
-	void		set_surface (size_t c, double *zsurf);
+	// read data files
+	void		_read_data_ ();
+	// register lower bound constraint
+	void		_set_lower_bounds_ ();
+	// register terrai data
+	void		_set_surface_ (size_t c, double *zsurf);
 
-	void		simeq ();
+	void		_simeq_ ();
 
-	void		set_mag (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec, data_array *data);
-	void		set_grv (data_array *data);
+	void		_set_mag_ (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec, data_array *data);
+	void		_set_grv_ (data_array *data);
 
-	void		fwrite_model (FILE *fp);
-	void		export_weight ();
-	void		export_matrix ();
+	void		_fwrite_model_ (FILE *fp);
+	void		_export_weights_ ();
+	void		_export_matrices_ ();
 	
 private:
+	// initialize
 	void		__init__ ();
+	// count number of data
+	size_t		__count__ (FILE *fp);
+	// read terrain file
+	double		*__read_terrain__ (FILE *fp, const size_t c);
 
 };
 

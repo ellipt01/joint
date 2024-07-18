@@ -10,7 +10,15 @@
 #include "ADMM.h"
 #include "mADMM.h"
 #include "Joint.h"
-#include "utils.h"
+
+static char *
+get_toolname (char *str)
+{
+	char	*p = strrchr (str, '/');
+	if (p == NULL) p = str;
+	else p++;
+	return p;
+}
 
 /*** public methods ***/
 void
@@ -42,7 +50,7 @@ Joint::prepare (int argc, char **argv)
 {
 	_toolname_ = get_toolname (argv[0]);
 
-	read_inline (argc, argv);
+	_read_inline_ (argc, argv);
 
 	FILE	*fp = fopen (_fn_settings_, "r");
 	if (!fp) {
@@ -50,7 +58,7 @@ Joint::prepare (int argc, char **argv)
 		sprintf (msg, "cannot open setting file %s", _fn_settings_);
 		throw std::runtime_error (msg);
 	}
-	fread_settings (fp);
+	_fread_settings_ (fp);
 	fclose (fp);
 }
 
@@ -58,7 +66,7 @@ Joint::prepare (int argc, char **argv)
 size_t
 Joint::start (bool normalize)
 {
-	if (_f_ == NULL || _K_ == NULL || _g_ == NULL || _G_ == NULL) simeq ();
+	if (_f_ == NULL || _K_ == NULL || _g_ == NULL || _G_ == NULL) _simeq_ ();
 
 	// scale gravity anomaly
 	size_t	ifamax = mm_real_iamax (_f_);
@@ -80,7 +88,7 @@ Joint::start (bool normalize)
 		_admm_->simeq (_f_, _g_, _K_, _G_, normalize);
 	}
 	// export weight for kernel matrix
-	export_weight ();
+	_export_weights_ ();
 	return _admm_->start (_tolerance_, _maxiter_, _verbos_);
 }
 
@@ -166,7 +174,7 @@ Joint::export_results ()
 	fp = fopen ("model.data", "w");
 	if (!fp) throw std::runtime_error ("cannot open file model.data");
 
-	fwrite_model (fp);
+	_fwrite_model_ (fp);
 	fclose (fp);
 
 	mm_real	*fr = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _magdata_->n, 1, _magdata_->n);
@@ -193,7 +201,7 @@ Joint::export_results ()
 
 /*** protected methods ***/
 void
-Joint::read_inline (int argc, char **argv)
+Joint::_read_inline_ (int argc, char **argv)
 {
 	bool	fn_mag_specified = false;
 	bool	fn_grv_specified = false;
@@ -269,7 +277,7 @@ Joint::read_inline (int argc, char **argv)
 }
 
 void
-Joint::fread_settings (FILE *stream)
+Joint::_fread_settings_ (FILE *stream)
 {
 	bool	ngrid_specified = false;
 	bool	range_specified = false;
@@ -319,7 +327,7 @@ Joint::fread_settings (FILE *stream)
 }
 
 void
-Joint::read_data ()
+Joint::_read_data_ ()
 {
 	FILE	*fp = fopen (_fn_mag_, "r");
 	if (!fp) {
@@ -341,7 +349,7 @@ Joint::read_data ()
 }
 
 void
-Joint::set_lower_bounds ()
+Joint::_set_lower_bounds_ ()
 {
 	size_t	m = _nx_ * _ny_ * _nz_;
 	_lower_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * m, 1, 2 * m);
@@ -352,7 +360,7 @@ Joint::set_lower_bounds ()
 }
 
 void
-Joint::set_surface (size_t c, double *zsurf)
+Joint::_set_surface_ (size_t c, double *zsurf)
 {
 	if (_nx_ <= 0 || _ny_ <= 0)
 		throw std::runtime_error ("range dose not specified. Call set_range() before.");
@@ -363,26 +371,33 @@ Joint::set_surface (size_t c, double *zsurf)
 }
 
 void
-Joint::simeq ()
+Joint::_simeq_ ()
 {
-	read_data ();
-	if (_nu_ > DBL_EPSILON) set_lower_bounds ();
+	_read_data_ ();
+	if (_nu_ > DBL_EPSILON) _set_lower_bounds_ ();
 
 	if (_fn_ter_ != NULL) {
-		size_t	c = count (_fn_ter_);
-		double	*zsurf = read_terrain (c, _fn_ter_);
-		set_surface (c, zsurf);
+		FILE	*fp = fopen (_fn_ter_, "r");
+		if (!fp) {
+			char	msg[80];
+			sprintf (msg, "cannot open terrain file: %s", _fn_ter_);
+			throw std::runtime_error (msg);
+		}
+		size_t	c = __count__ (fp);
+		double	*zsurf = __read_terrain__ (fp, c);
+		fclose (fp);
+		_set_surface_ (c, zsurf);
 		delete zsurf;
 	}
-	set_mag (_exf_inc_, _exf_dec_, _mgz_inc_, _mgz_dec_, _magdata_);
-	set_grv (_grvdata_);
+	_set_mag_ (_exf_inc_, _exf_dec_, _mgz_inc_, _mgz_dec_, _magdata_);
+	_set_grv_ (_grvdata_);
 
-	if (_export_matrix_) export_matrix ();
+	if (_export_matrix_) _export_matrices_ ();
 
 }
 
 void
-Joint::set_mag (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec, data_array *data)
+Joint::_set_mag_ (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec, data_array *data)
 {
 	size_t	n = data->n;
 	_f_ = mm_real_view_array (MM_REAL_DENSE, MM_REAL_GENERAL, n, 1, n, data->data);
@@ -395,7 +410,7 @@ Joint::set_mag (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec, 
 }
 
 void
-Joint::set_grv (data_array *data)
+Joint::_set_grv_ (data_array *data)
 {
 	size_t	n = data->n;
 	_g_ = mm_real_view_array (MM_REAL_DENSE, MM_REAL_GENERAL, n, 1, n, data->data);
@@ -408,7 +423,7 @@ Joint::set_grv (data_array *data)
 }
 
 void
-Joint::fwrite_model (FILE *fp)
+Joint::_fwrite_model_ (FILE *fp)
 {
 	if (_magker_ == NULL) throw std::runtime_error ("magnetic kernel is not specified. Call set_mag()");
 	if (_grvker_ == NULL) throw std::runtime_error ("gravity kernel is not specified. Call set_grv()");
@@ -438,7 +453,7 @@ Joint::fwrite_model (FILE *fp)
 }
 
 void
-Joint::export_weight ()
+Joint::_export_weights_ ()
 {
 	FILE	*fp = fopen ("wx.vec", "w");
 	if (fp) {
@@ -453,7 +468,7 @@ Joint::export_weight ()
 }
 
 void
-Joint::export_matrix ()
+Joint::_export_matrices_ ()
 {
 	FILE	*fp = fopen ("K.mat", "w");
 	if (fp) {
@@ -510,12 +525,35 @@ Joint::__init__ ()
 	_tolerance_ = 1.e-3;
 	_maxiter_ = 1000;
 
-	_export_matrix_ = false;
-
 	_admm_ = NULL;
 
 	_export_matrix_ = false;
 	_verbos_ = false;
+}
+
+size_t
+Joint::__count__ (FILE *fp)
+{
+	int		c = 0;
+	char	buf[BUFSIZ];
+	while (fgets (buf, BUFSIZ, fp) != NULL) c++;
+	fseek (fp, SEEK_SET, 0L);
+	return c;
+}
+
+double *
+Joint::__read_terrain__ (FILE *fp, const size_t c)
+{
+	double	*zsurf = new double [c];
+	char	buf[BUFSIZ];
+	int		k = 0;
+	while (fgets (buf, BUFSIZ, fp) != NULL) {
+		double	x, y, z;
+		sscanf (buf, "%lf\t%lf\t%lf", &x, &y, &z);
+		zsurf[k] = z;
+		if (++k >= c) break;
+	}
+	return zsurf;
 }
 
 

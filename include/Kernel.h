@@ -7,8 +7,9 @@
 	This class provides a template for calculating the kernel functions
 	used for magnetic and gravity inversion.
 
-	set_range (): Specify the range and number of subdivisions of the model space
-	set_data (): register observation data, locations, and altitudes.  
+	*** flow of the processing ***
+	set_range (): specify the range and number of subdivisions of the model space.
+	set_data (): register observation data (observed locations, altitudes, and anomalies).  
 	get (): compute kernel matrix and return it.
 
 ***/

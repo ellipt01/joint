@@ -398,7 +398,6 @@ ADMM::_inv_SMW_ (double coef, mm_real *K, mm_real *Ci, mm_real *b)
 void
 ADMM::__init__ ()
 {
-std::cout << "ADMM__init__" << std::endl;
 	_size1_ = 0;
 	_size2_ = 0;
 
