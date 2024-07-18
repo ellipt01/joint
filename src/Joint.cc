@@ -44,7 +44,7 @@ Joint::usage ()
 	fprintf (stderr, "       The -l and -a options are exclusive and cannot be used simultaneously.\n");
 }
 
-// read inline options and read setting file
+// read inline options and settings file
 void
 Joint::prepare (int argc, char **argv)
 {
@@ -101,6 +101,7 @@ Joint::restart ()
 	return _admm_->restart (_tolerance_, _maxiter_);
 }
 
+// return residual (max of primal and dual residuals)
 double
 Joint::residual ()
 {
@@ -109,6 +110,7 @@ Joint::residual ()
 }
 
 // recover magnetic and gravity anomalies
+// and store them into mmreal *f and mm_real *g
 void
 Joint::recover (mm_real *f, mm_real *g)
 {
@@ -116,7 +118,8 @@ Joint::recover (mm_real *f, mm_real *g)
 	mm_real_xj_scale (g, 0, 1. / _scale_);
 }
 
-// get magnetization model
+// get instance of magnetization model
+// depth weighting is removed
 mm_real	*
 Joint::get_beta ()
 {
@@ -126,7 +129,8 @@ Joint::get_beta ()
 	return beta;
 }
 
-// get density model
+// get instance of density model
+// depth weighting is removed
 mm_real *
 Joint::get_rho ()
 {
@@ -150,7 +154,7 @@ Joint::fwrite_inline (FILE *stream)
 	(_export_matrix_) ? fprintf (stream, "true\n") : fprintf (stream, "false\n");
 }
 
-// fwrite setting specified by setting file
+// fwrite setting specified by settings file
 void
 Joint::fwrite_settings (FILE *stream)
 {
@@ -166,11 +170,13 @@ Joint::fwrite_settings (FILE *stream)
 		fprintf (stream, "nu:\t\t%.4f:lower bounds = %.4f, %.4f\n", _nu_, _beta_lower_, _rho_lower_);
 }
 
+// export calculation results
 void
 Joint::export_results ()
 {
 	FILE *fp;
-	
+
+	// export derived models
 	fp = fopen ("model.data", "w");
 	if (!fp) throw std::runtime_error ("cannot open file model.data");
 
@@ -180,6 +186,7 @@ Joint::export_results ()
 	mm_real	*fr = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _magdata_->n, 1, _magdata_->n);
 	mm_real	*gr = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _grvdata_->n, 1, _grvdata_->n);
 
+	// recover input magnetic and gravity anomalies
 	recover (fr, gr);
 
 	fp = fopen ("recover_mag.data", "w");

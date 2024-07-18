@@ -128,7 +128,7 @@ public:
 	size_t		start (bool normalize);
 	size_t		restart ();
 
-	// return major and dual residuals
+	// return max of primal and dual residuals
 	double		residual ();
 
 	// recover input anomalies using derived model
