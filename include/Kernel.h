@@ -32,7 +32,9 @@ protected:
 	data_array	*_data_;
 
 	// kernel matrix
-	mm_real		*_K_;
+	size_t		_m_;
+	size_t		_n_;
+	double		*_K_;
 
 	// mgcal func for computing kernel matrix
 	mgcal_func	*_func_;
@@ -53,14 +55,14 @@ public:
 	void	set_data (data_array *array);
 
 	// compute and return kernel matrix
-	mm_real	*get ();
+	double	*get ();
 
 	// return grid object of the model space
 	grid	*get_grid () { return _grd_; }
 
 	// fwrite model
-	void	fwrite (FILE *stream, mm_real *model);
-	void	fwrite (FILE *stream, mm_real *model, const char *format);
+	void	fwrite (FILE *stream, double *model);
+	void	fwrite (FILE *stream, double *model, const char *format);
 
 protected:
 	// evaluate kernel matrix

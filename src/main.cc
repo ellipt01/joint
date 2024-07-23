@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "mgcal.h"
-#include "mmreal.h"
 
 #include "Kernel.h"
 #include "ADMM.h"

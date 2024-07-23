@@ -1,41 +1,39 @@
 #include <iostream>
 
 #include "mgcal.h"
-#include "mmreal.h"
 #include "Kernel.h"
 #include "gravity.h"
 
 /*** public methods ***/
 // set range and creates grid for model space
 void
-Kernel::set_range (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz)
-{
-	_nx_ = nx;
-	_ny_ = ny;
-	_nz_ = nz;
-	_grd_ = grid_new (_nx_, _ny_, _nz_, xx, yy, zz);
-	grid_stretch_at_edge (_grd_, 1000.);
-}
-
-void
 Kernel::set_range (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz, const double ll)
 {
 	_nx_ = nx;
 	_ny_ = ny;
 	_nz_ = nz;
+	_n_ = _nx_ * _ny_ * _nz_;
 	_grd_ = grid_new (_nx_, _ny_, _nz_, xx, yy, zz);
 	if (ll > 0.) grid_stretch_at_edge (_grd_, ll);
 }
+
+void
+Kernel::set_range (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz)
+{
+	set_range (nx, ny, nz, xx, yy, zz, 1000.);
+}
+
 
 // set observed data
 void
 Kernel::set_data (data_array *data)
 {
 	_data_ = data;
+	_m_ = _data_->n;
 }
 
 // compute and return kernel matrix
-mm_real *
+double *
 Kernel::get ()
 {
 	if (_K_ == NULL) _eval_ ();
@@ -44,15 +42,15 @@ Kernel::get ()
 
 // fwrite model
 void
-Kernel::fwrite (FILE *stream, mm_real *model)
+Kernel::fwrite (FILE *stream, double *model)
 {
-	fwrite_grid_with_data (stream, _grd_, model->data, "%.4e\t%.4e\t%.4e\t%.8e");
+	fwrite_grid_with_data (stream, _grd_, model, "%.4e\t%.4e\t%.4e\t%.8e");
 }
 
 void
-Kernel::fwrite (FILE *stream, mm_real *model, const char *format)
+Kernel::fwrite (FILE *stream, double *model, const char *format)
 {
-	fwrite_grid_with_data (stream, _grd_, model->data, format);
+	fwrite_grid_with_data (stream, _grd_, model, format);
 }
 
 /*** protected methods ***/
@@ -62,11 +60,8 @@ Kernel::_eval_ ()
 {
 	if (_data_ == NULL) throw std::runtime_error ("please set data_array.");
 	if (_grd_ == NULL)   throw std::runtime_error ("please set range.");
-
-	size_t	m = _data_->n;
-	size_t	n = _grd_->n;
-	_K_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, m, n, m * n);
-	kernel_matrix_set (_K_->data, _data_, _grd_, _mgz_, _exf_, _func_);
+	_K_ = new double [_m_ * _n_];
+	kernel_matrix_set (_K_, _data_, _grd_, _mgz_, _exf_, _func_);
 }
 
 /*** private methods ***/

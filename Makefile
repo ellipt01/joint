@@ -3,11 +3,11 @@ include make.config
 DESTDIR		= ./bin
 DESTLIBDIR	= ./lib
 
-LOCALLIBS	= -L./lib -lmgcal -lmmreal
+LOCALLIBS	= -L./lib -lmgcal
 LIBS		= $(BLAS_LIB) -lm
 CFLAGS		= -O3
 CPPFLAGS	= -I. -I./include $(BLAS_CFLAGS)\
-			  -I./mgcal/include -I./mmreal/include $(OPENMP_FLG)
+			  -I./mgcal/include $(OPENMP_FLG)
 
 COMMON_OBJS	= 
 
@@ -15,7 +15,7 @@ JINV_OBJS	= src/main.o src/Joint.o src/ADMM.o src/mADMM.o src/Kernel.o
 
 OBJS		= $(JINV_OBJS) $(COMMON_OBJS)
 
-SUBDIRS		= mgcal mmreal
+SUBDIRS		= mgcal
 
 PROGRAMS	= jinv
 

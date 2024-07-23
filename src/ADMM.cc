@@ -3,36 +3,41 @@
 #include <cfloat>
 
 #include "mgcal.h"
-#include "mmreal.h"
 #include "ADMM.h"
 
 #ifdef __cplusplus
 	extern "C" {
 #endif // __cplusplus
 
-int		dpotrf_ (char *uplo, long *n, double *a, long *lda, long *nfo);
-int		dpotri_ (char *uplo, long *n, double *a, long *lda, long *nfo);
-int		dgetrf_ (long *m, long *n, double *a, long *lda, long *ipiv, long *info);
-int		dgetri_ (long *n, double *a, long *m, long *ipiv, double *work, long *lwork, long *info);
+static char		trans = 'T';
+static char		notrans = 'N';
+static size_t	ione = 1;
+static double	dzero = 0.;
+static double	done = 1.;
+static double	dmone = -1.;
+
+double	dnrm2_ (size_t *n, double *x, size_t *inc);
+void	dscal_ (size_t *n, double *scale, double *x, size_t *inc);
+void	daxpy_ (size_t *n, double *alpha, double *x, size_t *incx, double *y, size_t *incy);
+
+int		dpotrf_ (char *uplo, size_t *n, double *a, size_t *lda, long *nfo);
+int		dpotri_ (char *uplo, size_t *n, double *a, size_t *lda, long *nfo);
+int		dgetrf_ (size_t *m, size_t *n, double *a, size_t *lda, long *ipiv, long *info);
+int		dgetri_ (size_t *n, double *a, size_t *m, long *ipiv, double *work, size_t *lwork, long *info);
+
+void	dgemv_ (char *trans, size_t *m, size_t *n, double *alpha, double *A, size_t *ldA,
+				double *x, size_t *incx, double *beta , double *y, size_t *incy);
+void	dsymv_ (char *uplo, size_t *m, double *alpha, double *A, size_t *ldA,
+				double *x, size_t *incx, double *beta, double *y, size_t *incy);
+void	dgemm_ (char *transa, char *transb, size_t *m, size_t *n, size_t *k, double *alpha, double *A, size_t *ldA,
+				double *B, size_t *ldB, double *beta , double *C, size_t *ldC);
+
 
 /*** public methods ***/
 ADMM::ADMM (double lambda1, double lambda2, double mu)
 {
-	ADMM (lambda1, lambda2, mu, -1., NULL);
-}
-
-ADMM::ADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower)
-{
 	__init__ ();
 	_mu_ = mu;
-
-	if (nu > 0. && lower != NULL) {
-		_nu_ = nu;
-		_lower_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, lower->m, lower->n, lower->nnz);
-		mm_real_memcpy (_lower_, lower);
-		_apply_lower_bound_ = true;
-	}
-
 	set_params (lambda1, lambda2);
 }
 
@@ -46,40 +51,39 @@ ADMM::set_params (double lambda1, double lambda2)
 
 // set simultaneous equations to be solved
 void
-ADMM::simeq (mm_real *f, mm_real *X, bool normalize)
+ADMM::simeq (size_t size1, size_t size2, double *f, double *X, bool normalize, double nu, double *lower)
 {
-	if (f->m != X->m) throw std::runtime_error ("size of g and X does not match.");
-
-	_size1_ = X->m;
-	_size2_ = X->n;
+	_size1_ = size1;
+	_size2_ = size2;
 
 	_f_ = f;
 	_X_ = X;
 
 	if (normalize) {
-		if (_w_) mm_real_free (_w_);
-		_w_ = _normalize_ (_X_);
+		if (_w_) delete [] _w_;
+		_w_ = _normalize_ (_size1_, _size2_, _X_);
 	}
-	// initialize primal and dual variables, and set to 0
-	_initialize_ ();
 
-	if (_apply_lower_bound_) {
-		for (size_t j = 0; j < _size2_; j++) _lower_->data[j] *= _w_->data[j];
+	_nu_ = nu;
+	if (_nu_ > DBL_EPSILON) {
+		_lower_ = new double [_size2_];
+		// copy lower bounds and apply weight
+		for (size_t j = 0; j < _size2_; j++) _lower_[j] = lower[j] * _w_[j];
+		_apply_lower_bound_ = true;
 	}
 }
 
 // return zeta
-mm_real *
+double *
 ADMM::get_zeta ()
 {
 	if (!_zeta_) return NULL;
 
-	mm_real	*zeta = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _zeta_->m, 1, _zeta_->m);
-	mm_real_memcpy (zeta, _zeta_);
+	double	*zeta = new double [_size2_];
+	for (size_t j = 0; j < _size2_; j++) zeta[j] = _zeta_[j];
 	if (_w_ != NULL) {
-		for (size_t j = 0; j < zeta->m; j++) zeta->data[j] /= _w_->data[j];
+		for (size_t j = 0; j < _size2_; j++) zeta[j] /= _w_[j];
 	}
-
 	return zeta;
 }
 
@@ -87,9 +91,12 @@ ADMM::get_zeta ()
 size_t
 ADMM::start (const double tol, const size_t maxiter, bool verbos)
 {
+	// initialize variables
+	_initialize_ ();
+
 	// tol: tolerance, maxiter: maximum number of ADMM iterations
-	size_t	k;
-	for (k = 0; k < maxiter; k++) {
+	size_t	k = 0;
+	while (k < maxiter) {
 
 		_one_cycle_ ();
 
@@ -97,24 +104,19 @@ ADMM::start (const double tol, const size_t maxiter, bool verbos)
 		if (verbos && k % 100 == 0)
 			fprintf (stderr, "residual[%ld] = %.4e / %.4e\n", k, _residual_, tol);
 		if (_residual_ < tol) break;
+
+		k++;
 	}
 	return k;
 }
 
-// restart ADMM iteration
-size_t
-ADMM::restart (const double tol, const size_t maxiter)
-{
-	_initialize_ ();
-	return start (tol, maxiter);
-}
-
 // recover the input data
-mm_real *
+double *
 ADMM::recover ()
 {
-	mm_real	*f = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size1_, 1, _size1_);
-	mm_real_x_dot_yk (false, 1., _X_, _zeta_, 0, 0., f); // f = X * zeta
+	double	*f = new double [_size1_];
+	// f = X * zeta
+	dgemv_ (&notrans, &_size1_, &_size2_, &done, _X_, &_size1_, _zeta_, &ione, &dzero, f, &ione);
 	return f;
 }
 
@@ -130,35 +132,35 @@ ADMM::_initialize_ ()
 
 	// allocate and initialize
 	// model vector
-	if (_zeta_) mm_real_free (_zeta_); 
-	_zeta_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-	mm_real_set_all (_zeta_, 0.);
+	if (_zeta_) delete [] _zeta_; 
+	_zeta_ = new double [_size2_];
+	for (size_t i = 0; i < _size2_; i++) _zeta_[i] = 0.;
 
 	// backup
-	if (_zeta_prev_) mm_real_free (_zeta_prev_);
-	_zeta_prev_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-	mm_real_set_all (_zeta_prev_, 0.);
+	if (_zeta_prev_) delete [] _zeta_prev_;
+	_zeta_prev_ = new double [_size2_];
+	for (size_t i = 0; i < _size2_; i++) _zeta_prev_[i] = 0.;
 
 	// slack vector introduced to separate penalty
-	if (_s_) mm_real_free (_s_);
-	_s_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-	mm_real_set_all (_s_, 0.);
+	if (_s_) delete [] _s_;
+	_s_ = new double [_size2_];
+	for (size_t i = 0; i < _size2_; i++) _s_[i] = 0.;
 
 	// Lagrange dual
-	if (_u_) mm_real_free (_u_);
-	_u_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-	mm_real_set_all (_u_, 0.);
+	if (_u_) delete [] _u_;
+	_u_ = new double [_size2_];
+	for (size_t i = 0; i < _size2_; i++) _u_[i] = 0.;
 
 	// lower bound onstraint
 	if (_apply_lower_bound_) {
 		// slack vector for bound constraint
-		if (_t_) mm_real_free (_t_);
-		_t_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-		mm_real_set_all (_t_, 0.);
+		if (_t_) delete [] _t_;
+		_t_ = new double [_size2_];
+		for (size_t i = 0; i < _size2_; i++) _t_[i] = 0.;
 		// Lagrange dual
-		if (_v_) mm_real_free (_v_);
-		_v_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-		mm_real_set_all (_v_, 0.);
+		if (_v_) delete [] _v_;
+		_v_ = new double [_size2_];
+		for (size_t i = 0; i < _size2_; i++) _v_[i] = 0.;
 	}
 
 }
@@ -168,8 +170,8 @@ ADMM::_initialize_ ()
 void
 ADMM::_calc_Ci_ ()
 {
-	if (_Ci_ != NULL) mm_real_free (_Ci_);
-	_Ci_ = _Cinv_SMW_ (_mu_ + _nu_, _X_);
+	if (_Ci_ != NULL) delete [] _Ci_;
+	_Ci_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_);
 }
 
 // update b and by:
@@ -178,14 +180,14 @@ void
 ADMM::_update_b_ ()
 {
 	// b = X.T * f + mu * (s + u)
-	if (_b_ == NULL) _b_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _X_->n, 1, _X_->n);
+	if (_b_ == NULL) _b_ = new double [_size2_];
 	if (_c_ == NULL) {
-		_c_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _X_->n, 1, _X_->n);
-		mm_real_x_dot_yk (true, 1., _X_, _f_, 0, 0., _c_);
+		_c_ = new double [_size2_];
+		dgemv_ (&trans, &_size1_, &_size2_, &done, _X_, &_size1_, _f_, &ione, &dzero, _c_, &ione);
 	}
-	for (size_t i = 0; i < _b_->m; i++) _b_->data[i] = _c_->data[i] + _mu_ * (_s_->data[i] + _u_->data[i]);
+	for (size_t i = 0; i < _size2_; i++) _b_[i] = _c_[i] + _mu_ * (_s_[i] + _u_[i]);
 	if (_apply_lower_bound_) {
-		for (size_t i = 0; i < _b_->m; i++) _b_->data[i] += _nu_ * (_t_->data[i] + _v_->data[i]);
+		for (size_t i = 0; i < _size2_; i++) _b_[i] += _nu_ * (_t_[i] + _v_[i]);
 	}
 }
 
@@ -197,11 +199,11 @@ ADMM::_update_zeta_ ()
 {
 	if (_Ci_ == NULL) _calc_Ci_ ();
 	if (_zeta_) {
-		mm_real_memcpy (_zeta_prev_, _zeta_);
-		mm_real_free (_zeta_);
+		for (size_t i = 0; i < _size2_; i++) _zeta_prev_[i] = _zeta_[i];
+		delete [] _zeta_;
 	}
 	// zeta = (b - X.T * Ci * X * b) / (mu + nu)
-	_zeta_ = _inv_SMW_ (_mu_ + _nu_, _X_, _Ci_, _b_);
+	_zeta_ = _inv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_, _Ci_, _b_);
 }
 
 // update s:
@@ -213,9 +215,9 @@ ADMM::_update_s_ ()
 
 #pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
-		double	qj = _zeta_->data[j] - _u_->data[j];
+		double	qj = _zeta_[j] - _u_[j];
 		double	cj = _soft_threshold_ (qj, _lambda1_ / _mu_);
-		_s_->data[j] = ck * cj; 
+		_s_[j] = ck * cj; 
 	}
 }
 
@@ -226,9 +228,9 @@ ADMM::_update_t_ ()
 {
 #pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
-		double	lj = _lower_->data[j];
-		double	qj = _zeta_->data[j] - _v_->data[j];
-		_t_->data[j] = (lj < qj) ? qj : lj;
+		double	lj = _lower_[j];
+		double	qj = _zeta_[j] - _v_[j];
+		_t_[j] = (lj < qj) ? qj : lj;
 	}
 }
 
@@ -236,17 +238,14 @@ ADMM::_update_t_ ()
 void
 ADMM::_update_u_ ()
 {
-	for (size_t j = 0; j < _size2_; j++)
-		_u_->data[j] += _mu_ * (_s_->data[j] - _zeta_->data[j]);
+	for (size_t j = 0; j < _size2_; j++) _u_[j] += _mu_ * (_s_[j] - _zeta_[j]);
 }
 
 // update v: v = v + nu * (t - zeta)
 void
 ADMM::_update_v_ ()
 {
-	for (size_t j = 0; j < _size2_; j++) {
-		_v_->data[j] += _nu_ * (_t_->data[j] - _zeta_->data[j]);
-	}
+	for (size_t j = 0; j < _size2_; j++) _v_[j] += _nu_ * (_t_[j] - _zeta_[j]);
 }
 
 // perform ADMM iteration at once
@@ -270,21 +269,21 @@ ADMM::_one_cycle_ ()
 double
 ADMM::_eval_residuals_ ()
 {
-	mm_real	*dt = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-	mm_real	*dz = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
+	double	*dt = new double [_size2_];
+	double	*dz = new double [_size2_];
 
 #pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
 		// dt = s - zeta
-		dt->data[j] = _s_->data[j] - _zeta_->data[j];
+		dt[j] = _s_[j] - _zeta_[j];
 		// dz = mu * (zeta - zeta_prev)
-		dz->data[j] = _mu_ * (_zeta_->data[j] - _zeta_prev_->data[j]);
+		dz[j] = _mu_ * (_zeta_[j] - _zeta_prev_[j]);
 	}
 
-	double	dr1 = mm_real_xj_nrm2 (dt, 0) / sqrt ((double) dt->m);
-	mm_real_free (dt);
-	double	dr2 = mm_real_xj_nrm2 (dz, 0) / sqrt ((double) dz->m);
-	mm_real_free (dz);
+	double	dr1 = dnrm2_ (&_size2_, dt, &ione) / sqrt ((double) _size2_);
+	delete [] dt;
+	double	dr2 = dnrm2_ (&_size2_, dz, &ione) / sqrt ((double) _size2_);
+	delete [] dz;
 
 	return (dr1 >= dr2) ? dr1 : dr2;
 }
@@ -299,98 +298,93 @@ ADMM::_soft_threshold_ (double gamma, double lambda)
 }
 
 // normalize matrix *K and store || kj || in vector *w
-mm_real *
-ADMM::_normalize_ (mm_real *K)
+double *
+ADMM::_normalize_ (size_t m, size_t n, double *K)
 {
-	mm_real	*w = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, K->n, 1, K->n);
+	double	*w = new double [n];
 #pragma omp parallel for
-	for (size_t j = 0; j < K->n; j++) {
-		double	wj = mm_real_xj_nrm2 (K, j);
-		mm_real_xj_scale (K, j, 1. / wj);
-		w->data[j] = wj;
+	for (size_t j = 0; j < n; j++) {
+		double	wj = dnrm2_ (&m, K + j * m, &ione);
+		double	wjinv = 1. / wj;
+		dscal_ (&m, &wjinv, K + j * m, &ione);
+		w[j] = wj;
 	}
 	return w;
 }
 
 // compute inverse using dpotrf and dpotri (cholesky)
 void
-ADMM::_cholinv_ (mm_real *C)
+ADMM::_cholinv_ (char uplo, size_t n, double *C)
 {
-	char	uplo = (C->symm == MM_REAL_SYMMETRIC_UPPER) ? 'U' : 'L';
 	long	info;
-	dpotrf_ (&uplo, &C->m, C->data, &C->m, &info);
-	dpotri_ (&uplo, &C->m, C->data, &C->m, &info);
+	dpotrf_ (&uplo, &n, C, &n, &info);
+	dpotri_ (&uplo, &n, C, &n, &info);
 }
 
 // compute inverse using dgetrf and dgetri (LU)
 void
-ADMM::_LUinv_ (mm_real *C)
+ADMM::_LUinv_ (size_t m, size_t n, double *C)
 {
 	long	info;
-	long	m = C->m;
-	long	n = C->n;
 	size_t	min_mn = (m < n) ? m : n; 
 	long	*ipiv = new long [min_mn];
-	dgetrf_ (&m, &n, C->data, &m, ipiv, &info);
+	dgetrf_ (&m, &n, C, &m, ipiv, &info);
 
 	double	w;
-	long	lwork = -1;
-	dgetri_ (&n, C->data, &m, ipiv, &w, &lwork, &info);
-	lwork = (long) w;
+	size_t	lwork = -1;
+	dgetri_ (&n, C, &m, ipiv, &w, &lwork, &info);
+	lwork = (size_t) w;
 	double	*work = new double [lwork];
-	dgetri_ (&n, C->data, &m, ipiv, work, &lwork, &info);
+	dgetri_ (&n, C, &m, ipiv, work, &lwork, &info);
 
 	delete [] ipiv;
 	delete [] work;
 }
 
 // compute (K * K.T + coef * I)^-1:
-mm_real *
-ADMM::_Cinv_SMW_ (double coef, mm_real *K)
+double *
+ADMM::_Cinv_SMW_ (double coef, size_t m, size_t n, double *K)
 {
-	size_t	m = K->m;
-	size_t	n = K->n;
 	// Ci = (K * K.T + coef * I)^-1
-	mm_real	*Ci = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, m, m, m * m);
-	mm_real_x_dot_y (false, true, 1., K, K, 0., Ci); // Ci = K * K.T
-	for (size_t i = 0; i < Ci->m; i++) Ci->data[i + i * Ci->m] += coef; // Ci = K * K.T + coef * I
+	double	*Ci = new double [m * m];
+	dgemm_ (&notrans, &trans, &m, &m, &n, &done, K, &m, K, &m, &dzero, Ci, &m);
+	for (size_t i = 0; i < m; i++) Ci[i + i * m] += coef; // Ci = K * K.T + coef * I
 #ifdef USE_LUINV
 	_LUinv_ (Ci);
 #else
-	mm_real_general_to_symmetric ('U', Ci);
-	_cholinv_ (Ci);
+	_cholinv_ ('U', m, Ci);
 #endif
 	return Ci;
 }
 
 // compute (I - K.T * (K * K.T + coef * I)^-1 * K) * b / coef
-mm_real *
-ADMM::_inv_SMW_ (double coef, mm_real *K, mm_real *Ci, mm_real *b)
+double *
+ADMM::_inv_SMW_ (double coef, size_t m, size_t n, double *K, double *Ci, double *b)
 {
-	size_t	m = K->m;
-	size_t	n = K->n;
-
-	mm_real	*zeta = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, n, 1, n);
+	double *zeta = new double [n];
 
 	// y1 = K * b
-	mm_real	*y1 = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, m, 1, m);
-	mm_real_x_dot_yk (false, 1., K, b, 0, 0., y1);
+	double	*y1 = new double [m];
+	dgemv_ (&notrans, &m, &n, &done, K, &m, b, &ione, &dzero, y1, &ione);
 
 	// y2 = Ci * K * b
-	mm_real	*y2 = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, m, 1, m);
-	mm_real_x_dot_yk (false, 1., Ci, y1, 0, 0., y2);
-	mm_real_free (y1);
+	double	*y2 = new double [m];
+	char	uplo = 'U';
+	dsymv_ (&uplo, &m, &done, Ci, &m, y1, &ione, &dzero, y2, &ione);
+	delete [] y1;
 
 	// zeta = - K.T * Ci * K * b
-	mm_real_x_dot_yk (true, -1., K, y2, 0, 0., zeta);
-	mm_real_free (y2);
+	dgemv_ (&trans, &m, &n, &dmone, K, &m, y2, &ione, &dzero, zeta, &ione);
+	delete [] y2;
 
 	// zeta = b - K.T * Ci * K * b
-	mm_real_axjpy (1., b, 0, zeta);
+	daxpy_ (&n, &done, b, &ione, zeta, &ione);
 
 	// zeta = (b - K.T * Ci * K * b) / coef
-	if (fabs (coef - 1.) > DBL_EPSILON) mm_real_xj_scale (zeta, 0, 1. / coef);
-
+	if (fabs (coef - 1.) > DBL_EPSILON) {
+		double	scale = 1. / coef;
+		dscal_ (&n, &scale, zeta, &ione);
+	}
 	return zeta;
 }
 

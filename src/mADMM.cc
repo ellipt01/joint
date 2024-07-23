@@ -3,42 +3,41 @@
 #include <cfloat>
 
 #include "mgcal.h"
-#include "mmreal.h"
 #include "ADMM.h"
 #include "mADMM.h"
+
+#ifdef __cplusplus
+	extern "C" {
+#endif // __cplusplus
+
+static char		trans = 'T';
+static char		notrans = 'N';
+static size_t	ione = 1;
+static double	dzero = 0.;
+static double	done = 1.;
+static double	dmone = -1.;
+
+double	dnrm2_ (size_t *n, double *x, size_t *inc);
+void	dgemv_(char *trans, size_t *m, size_t *n, double *alpha, double *A, size_t *ldA,
+			   double *x, size_t *incx, double *beta , double *y, size_t *incy);
 
 /*** public methods ***/
 mADMM::mADMM (double lambda1, double lambda2, double mu)
 {
-	mADMM (lambda1, lambda2, mu, -1., NULL);
-}
-
-mADMM::mADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower)
-{
 	__init__ ();
 	_mu_ = mu;
-
-	if (nu > DBL_EPSILON && lower != NULL) {
-		_nu_ = nu;
-		_lower_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, lower->m, lower->n, lower->nnz);
-		mm_real_memcpy (_lower_, lower);
-		_apply_lower_bound_ = true;
-	}
-
 	set_params (lambda1, lambda2);
 }
 
 // set simultaneous equations to be solved
 void
-mADMM::simeq (mm_real *f, mm_real *g, mm_real *X, mm_real *Y, bool normalize)
+mADMM::simeq (size_t size1, size_t size2, double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower)
 {
-	if (f->m != g->m) throw std::runtime_error ("size of g and f does not match.");
-	if (X->m != Y->m || X->n != Y->n) throw std::runtime_error ("size of X and Y does not match.");
-	if (f->m != X->m) throw std::runtime_error ("size of g and X does not match.");
-	if (g->m != Y->m) throw std::runtime_error ("size of f and Y does not match.");
+	_size1_ = size1;
+	_size2_ = size2;
 
-	_size1_ = X->m;
-	_size2_ = X->n;
+	_m_ = 2 * _size1_;
+	_n_ = 2 * _size2_;
 
 	_f_ = f;
 	_g_ = g;
@@ -47,49 +46,52 @@ mADMM::simeq (mm_real *f, mm_real *g, mm_real *X, mm_real *Y, bool normalize)
 	_Y_ = Y;
 
 	if (normalize) {
-		if (_wx_) mm_real_free (_wx_);
-		_wx_ = _normalize_ (_X_);
-		if (_wy_) mm_real_free (_wy_);
-		_wy_ = _normalize_ (_Y_);
+		if (_wx_) delete [] _wx_;
+		_wx_ = _normalize_ (_size1_, _size2_, _X_);
+		if (_wy_) delete [] _wy_;
+		_wy_ = _normalize_ (_size1_, _size2_, _Y_);
 	}
-	// initialize zeta (beta, rho), s, and u, and set to 0
-	_initialize_ ();
 
-	if (_apply_lower_bound_) {
+	if (nu > DBL_EPSILON && lower != NULL) {
+		_nu_ = nu;
+		_lower_ = new double [_n_];
+		// copy lower bounds and apply weight
 		for (size_t j = 0; j < _size2_; j++) {
-			_lower_->data[j] *= _wx_->data[j];
-			_lower_->data[j + _size2_] *= _wy_->data[j];
+			_lower_[j] = lower[j] * _wx_[j];
+			_lower_[j + _size2_] = lower[j + _size2_] * _wy_[j];
 		}
+		_apply_lower_bound_ = true;
 	}
 }
 
 
 // return beta
-mm_real *
+double *
 mADMM::get_beta ()
 {
 	if (!_beta_) return NULL;
 
-	mm_real	*beta = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _beta_->m, 1, _beta_->m);
-	mm_real_memcpy (beta, _beta_);
+	double	*beta = new double [_size2_];
+	for (size_t j = 0; j < _size2_; j++) beta[j] = _beta_[j];
 
 	if (_wx_ != NULL) {
-		for (size_t j = 0; j < beta->m; j++) beta->data[j] /= _wx_->data[j];
+		for (size_t j = 0; j < _size2_; j++) beta[j] /= _wx_[j];
 	}
 
 	return beta;
 }
 
 // return rho
-mm_real *
+double *
 mADMM::get_rho ()
 {
 	if (!_rho_) return NULL;
 
-	mm_real	*rho = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _rho_->m, 1, _rho_->m);
-	mm_real_memcpy (rho, _rho_);
+	double	*rho = new double [_size2_];
+	for (size_t j = 0; j < _size2_; j++) rho[j] = _rho_[j];
+
 	if (_wy_ != NULL) {
-		for (size_t j = 0; j < rho->m; j++) rho->data[j] /= _wy_->data[j];
+		for (size_t j = 0; j < _size2_; j++) rho[j] /= _wy_[j];
 	}
 
 	return rho;
@@ -99,6 +101,9 @@ mADMM::get_rho ()
 size_t
 mADMM::start (const double tol, const size_t maxiter, bool verbos)
 {
+	// initialize zeta (beta, rho), s, and u, and set to 0
+	_initialize_ ();
+
 	// tol: tolerance, maxiter: maximum number of ADMM iterations
 	size_t	k;
 	for (k = 0; k < maxiter; k++) {
@@ -113,23 +118,12 @@ mADMM::start (const double tol, const size_t maxiter, bool verbos)
 	return k;
 }
 
-// restart ADMM iteration
-size_t
-mADMM::restart (const double tol, const size_t maxiter)
-{
-	_initialize_ ();
-	return start (tol, maxiter);
-}
-
 // recover the input data
 void
-mADMM::recover (mm_real *f, mm_real *g)
+mADMM::recover (double *f, double *g)
 {
-	if (f->m != _size1_ || g->m != _size1_) throw std::runtime_error ("size of mm_real invalid");
-	
-	mm_real_x_dot_yk (false, 1., _X_, _beta_, 0, 0., f);
-	mm_real_x_dot_yk (false, 1., _Y_, _rho_,  0, 0., g);
-
+	dgemv_ (&notrans, &_size1_, &_size2_, &done, _X_, &_size1_, _beta_, &ione, &dzero, f, &ione);
+	dgemv_ (&notrans, &_size1_, &_size2_, &done, _Y_, &_size1_, _rho_,  &ione, &dzero, g, &ione);
 	return;
 }
 
@@ -145,44 +139,45 @@ mADMM::_initialize_ ()
 
 	// allocate and initialize
 	// magnetization
-	if (_beta_) mm_real_free (_beta_);
-	_beta_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-	mm_real_set_all (_beta_, 0.);
+	if (_beta_) delete [] _beta_;
+	_beta_ = new double [_size2_];
+	for (size_t i = 0; i < _size2_; i++) _beta_[i] = 0.;
 
 	// density
-	if (_rho_) mm_real_free (_rho_);
-	_rho_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-	mm_real_set_all (_rho_, 0.);
+	if (_rho_) delete [] _rho_;
+	_rho_ = new double [_size2_];
+	for (size_t i = 0; i < _size2_; i++) _rho_[i] = 0.;
 
 	// backup
-	if (_beta_prev_) mm_real_free (_beta_prev_);
-	_beta_prev_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-	mm_real_set_all (_beta_prev_, 0.);
+	if (_beta_prev_) delete [] _beta_prev_;
+	_beta_prev_ = new double [_size2_];
+	for (size_t i = 0; i < _size2_; i++) _beta_prev_[i] = 0.;
 
-	if (_rho_prev_) mm_real_free (_rho_prev_);
-	_rho_prev_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-	mm_real_set_all (_rho_prev_, 0.);
+	// density
+	if (_rho_prev_) delete [] _rho_prev_;
+	_rho_prev_ = new double [_size2_];
+	for (size_t i = 0; i < _size2_; i++) _rho_prev_[i] = 0.;
 
 	// slack vector introduced to separate penalty
-	if (_s_) mm_real_free (_s_);
-	_s_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
-	mm_real_set_all (_s_, 0.);
+	if (_s_) delete [] _s_;
+	_s_ = new double [_n_];
+	for (size_t i = 0; i < _n_; i++) _s_[i] = 0.;
 
 	// Lagrange dual
-	if (_u_) mm_real_free (_u_); 
-	_u_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
-	mm_real_set_all (_u_, 0.);
+	if (_u_) delete [] _u_;
+	_u_ = new double [_n_];
+	for (size_t i = 0; i < _n_; i++) _u_[i] = 0.;
 
 	// lower bound onstraint
 	if (_apply_lower_bound_) {
 		// slack vector for bound constraint
-		if (_t_) mm_real_free (_t_);
-		_t_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
-		mm_real_set_all (_t_, 0.);
+		if (_t_) delete [] _t_;
+		_t_ = new double [_n_];
+		for (size_t i = 0; i < _n_; i++) _t_[i] = 0.;
 		// Lagrange dual
-		if (_v_) mm_real_free (_v_); 
-		_v_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
-		mm_real_set_all (_v_, 0.);
+		if (_v_) delete [] _v_;
+		_v_ = new double [_n_];
+		for (size_t i = 0; i < _n_; i++) _v_[i] = 0.;
 	}
 }
 
@@ -191,10 +186,10 @@ mADMM::_initialize_ ()
 void
 mADMM::_calc_Ci_ ()
 {
-	if (_CXi_) mm_real_free (_CXi_);
-	_CXi_ = _Cinv_SMW_ (_mu_ + _nu_, _X_);
-	if (_CYi_) mm_real_free (_CYi_);
-	_CYi_ = _Cinv_SMW_ (_mu_ + _nu_, _Y_);
+	if (_CXi_) delete [] _CXi_;
+	_CXi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_);
+	if (_CYi_) delete [] _CYi_;
+	_CYi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _Y_);
 }
 
 // update bx and by:
@@ -203,14 +198,14 @@ void
 mADMM::_update_bx_ ()
 {
 	// bx = X.T * f + mu * (s + u)[1:M]
-	if (_bx_ == NULL) _bx_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
+	if (_bx_ == NULL) _bx_ = new double [_size2_];
 	if (_cx_ == NULL) {
-		_cx_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-		mm_real_x_dot_yk (true, 1., _X_, _f_, 0, 0., _cx_);
+		_cx_ = new double [_size2_];
+		dgemv_ (&trans, &_size1_, &_size2_, &done, _X_, &_size1_, _f_, &ione, &dzero, _cx_, &ione);
 	}
-	for (size_t i = 0; i < _size2_; i++) _bx_->data[i] = _cx_->data[i] + _mu_ * (_s_->data[i] + _u_->data[i]);
+	for (size_t i = 0; i < _size2_; i++) _bx_[i] = _cx_[i] + _mu_ * (_s_[i] + _u_[i]);
 	if (_apply_lower_bound_) {
-		for (size_t i = 0; i < _size2_; i++) _bx_->data[i] += _nu_ * (_t_->data[i] + _v_->data[i]);
+		for (size_t i = 0; i < _size2_; i++) _bx_[i] += _nu_ * (_t_[i] + _v_[i]);
 	}
 }
 
@@ -218,14 +213,14 @@ void
 mADMM::_update_by_ ()
 {
 	// by = Y.T * g + mu * (s + u)[M:2*M]
-	if (_by_ == NULL) _by_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
+	if (_by_ == NULL) _by_ = new double [_size2_];
 	if (_cy_ == NULL) {
-		_cy_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _size2_, 1, _size2_);
-		mm_real_x_dot_yk (true, 1., _Y_, _g_, 0, 0., _cy_);
+		_cy_ = new double [_size2_];
+		dgemv_ (&trans, &_size1_, &_size2_, &done, _Y_, &_size1_, _g_, &ione, &dzero, _cy_, &ione);
 	}
-	for (size_t i = 0; i < _size2_; i++) _by_->data[i] = _cy_->data[i] + _mu_ * (_s_->data[i + _size2_] + _u_->data[i + _size2_]);
+	for (size_t i = 0; i < _size2_; i++) _by_[i] = _cy_[i] + _mu_ * (_s_[i + _size2_] + _u_[i + _size2_]);
 	if (_apply_lower_bound_) {
-		for (size_t i = 0; i < _size2_; i++) _by_->data[i] += _nu_ * (_t_->data[i + _size2_] + _v_->data[i + _size2_]);
+		for (size_t i = 0; i < _size2_; i++) _by_[i] += _nu_ * (_t_[i + _size2_] + _v_[i + _size2_]);
 	}
 }
 
@@ -244,21 +239,19 @@ void
 mADMM::_update_zeta_ ()
 {
 	if (_CXi_ == NULL || _CYi_ == NULL) _calc_Ci_ ();
-	_update_b_ ();
 
 	if (_beta_) {
-		mm_real_memcpy (_beta_prev_, _beta_);
-		mm_real_free (_beta_);
+		for (size_t i = 0; i < _size2_; i++) _beta_prev_[i] = _beta_[i];
+		delete [] _beta_;
 	}
 	if (_rho_) {
-		mm_real_memcpy (_rho_prev_, _rho_);
-		mm_real_free (_rho_);
+		for (size_t i = 0; i < _size2_; i++) _rho_prev_[i] = _rho_[i];
+		delete [] _rho_;
 	}
-
 	// beta = (bx - X.T * CXi * X * bx) / (mu + nu)
-	_beta_ = _inv_SMW_ (_mu_ + _nu_, _X_, _CXi_, _bx_);
+	_beta_ = _inv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_, _CXi_, _bx_);
 	// rho  = (by - Y.T * CYi * Y * by) / (mu + nu)
-	_rho_  = _inv_SMW_ (_mu_ + _nu_, _Y_, _CYi_, _by_);
+	_rho_  = _inv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _Y_, _CYi_, _by_);
 }
 
 // update s:
@@ -271,13 +264,13 @@ mADMM::_update_s_ ()
 #pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
 
-		double	q1 = _beta_->data[j] - _u_->data[j];
-		double	q2 = _rho_->data[j] - _u_->data[j + _size2_];
+		double	q1 = _beta_[j] - _u_[j];
+		double	q2 = _rho_[j] - _u_[j + _size2_];
 		double	qnrm = sqrt (pow (q1, 2.) + pow (q2, 2.));
 		double	l = _lambda1_ / (_mu_ * qnrm);
 		double	cj = _soft_threshold_ (1., l);
-		_s_->data[j] = ck * q1 * cj;
-		_s_->data[j + _size2_] = ck * q2 * cj;
+		_s_[j] = ck * q1 * cj;
+		_s_[j + _size2_] = ck * q2 * cj;
 	}
 }
 
@@ -288,12 +281,12 @@ mADMM::_update_t_ ()
 {
 #pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
-		double	lbj = _lower_->data[j];
-		double	qbj = _beta_->data[j] - _v_->data[j];
-		_t_->data[j] = (lbj < qbj) ? qbj : lbj;
-		double	lrj = _lower_->data[j + _size2_];
-		double	qrj = _rho_->data[j] - _v_->data[j + _size2_];
-		_t_->data[j + _size2_] = (lrj < qrj) ? qrj : lrj;
+		double	lbj = _lower_[j];
+		double	qbj = _beta_[j] - _v_[j];
+		_t_[j] = (lbj < qbj) ? qbj : lbj;
+		double	lrj = _lower_[j + _size2_];
+		double	qrj = _rho_[j] - _v_[j + _size2_];
+		_t_[j + _size2_] = (lrj < qrj) ? qrj : lrj;
 	}
 }
 
@@ -303,8 +296,8 @@ mADMM::_update_u_ ()
 {
 #pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
-		_u_->data[j] += _mu_ * (_s_->data[j] - _beta_->data[j]);
-		_u_->data[j + _size2_] += _mu_ * (_s_->data[j + _size2_] - _rho_->data[j]); 
+		_u_[j] += _mu_ * (_s_[j] - _beta_[j]);
+		_u_[j + _size2_] += _mu_ * (_s_[j + _size2_] - _rho_[j]); 
 	}
 }
 
@@ -314,8 +307,8 @@ mADMM::_update_v_ ()
 {
 #pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
-		_v_->data[j] += _nu_ * (_t_->data[j] - _beta_->data[j]);
-		_v_->data[j + _size2_] += _nu_ * (_t_->data[j + _size2_] - _rho_->data[j]); 
+		_v_[j] += _nu_ * (_t_[j] - _beta_[j]);
+		_v_[j + _size2_] += _nu_ * (_t_[j + _size2_] - _rho_[j]); 
 	}
 }
 
@@ -323,6 +316,7 @@ mADMM::_update_v_ ()
 void
 mADMM::_one_cycle_ ()
 {
+	_update_b_ ();
 	_update_zeta_ ();
 	_update_s_ ();
 	_update_u_ ();
@@ -336,23 +330,23 @@ mADMM::_one_cycle_ ()
 double
 mADMM::_eval_residuals_ ()
 {
-	mm_real	*dt = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
-	mm_real	*dz = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * _size2_, 1, 2 * _size2_);
+	double	*dt = new double [_n_];
+	double	*dz = new double [_n_];
 
 #pragma omp parallel for
 	for (size_t j = 0; j < _size2_; j++) {
 		// dt = s - zeta
-		dt->data[j] = _s_->data[j] - _beta_->data[j];
-		dt->data[j + _size2_] = _s_->data[j + _size2_] - _rho_->data[j];
+		dt[j] = _s_[j] - _beta_[j];
+		dt[j + _size2_] = _s_[j + _size2_] - _rho_[j];
 		// dz = mu * (zeta - zeta_prev)
-		dz->data[j] = _mu_ * (_beta_->data[j] - _beta_prev_->data[j]);
-		dz->data[j + _size2_] = _mu_ * (_rho_->data[j] - _rho_prev_->data[j]);
+		dz[j] = _mu_ * (_beta_[j] - _beta_prev_[j]);
+		dz[j + _size2_] = _mu_ * (_rho_[j] - _rho_prev_[j]);
 	}
 
-	double	dr1 = mm_real_xj_nrm2 (dt, 0) / sqrt ((double) dt->m);
-	mm_real_free (dt);
-	double	dr2 = mm_real_xj_nrm2 (dz, 0) / sqrt ((double) dz->m);
-	mm_real_free (dz);
+	double	dr1 = dnrm2_ (&_n_, dt, &ione) / sqrt ((double) _n_);
+	delete [] dt;
+	double	dr2 = dnrm2_ (&_n_, dz, &ione) / sqrt ((double) _n_);
+	delete [] dz;
 
 	return (dr1 >= dr2) ? dr1 : dr2;
 }
@@ -394,4 +388,8 @@ mADMM::__init__ ()
 	_CYi_ = NULL;
 
 }
+
+#ifdef __cplusplus
+	}
+#endif // __cplusplus
 

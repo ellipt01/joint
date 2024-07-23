@@ -64,50 +64,49 @@ protected:
 	double	_mu_;		// penalty parameter for regularization
 
 	double	_nu_;		// penalty parameter for lower bounds
-	mm_real	*_lower_;	// lower bound
+	double	*_lower_;	// lower bound
 	bool	_apply_lower_bound_;	// if lower bound constraint is applied, takes true
 
 	// input data
-	mm_real	*_f_;		// observed data
+	double	*_f_;		// observed data
 
 	// transform matrix
-	mm_real	*_X_;		// kernel matrix
+	double	*_X_;		// kernel matrix
 
 	// weighting
-	mm_real	*_w_;		// reciprocal of sensitivity weighting
+	double	*_w_;		// reciprocal of sensitivity weighting
 
-	mm_real	*_zeta_;	// model vector
+	double	*_zeta_;	// model vector
 
-	mm_real	*_zeta_prev_;	// backup for model vector
+	double	*_zeta_prev_;	// backup for model vector
 
 	/*** regularization penalty ***/
-	mm_real	*_s_;		// slack variable
-	mm_real	*_u_;		// Lagrange dual
+	double	*_s_;		// slack variable
+	double	*_u_;		// Lagrange dual
 
 	/**** lower bound constraint ***/
-	mm_real	*_t_;		// slack variable
-	mm_real	*_v_;		// Lagrange dual
+	double	*_t_;		// slack variable
+	double	*_v_;		// Lagrange dual
 
-	mm_real	*_c_;		// = X.T * f
-	mm_real	*_b_;		// = c + coef * (t + v)
-	mm_real	*_Ci_;		// = (X * X.T + coef * I)^-1
+	double	*_c_;		// = X.T * f
+	double	*_b_;		// = c + coef * (t + v)
+	double	*_Ci_;		// = (X * X.T + coef * I)^-1
 
 	double	_residual_;
 
 public:
 	ADMM () { __init__ (); }
 	ADMM (double lambda1, double lambda2, double mu);
-	ADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower);
 
 	// get model vector zeta
-	mm_real	*get_zeta ();
+	double	*get_zeta ();
 
 	// get depth weightings
-	mm_real	*get_w () { return _w_; } // weight for kernel matrix
+	double	*get_w () { return _w_; } // weight for kernel matrix
 
 	// set regulatization parameters
 	void	set_params (double lambda1, double lambda2);
-	void	simeq (mm_real *f, mm_real *X, bool normalize);
+	void	simeq (size_t size1, size_t size2, double *f, double *X, bool normalize, double nu, double *lower);
 
 	// start ADMM iteration until model converged
 	size_t	start (const double tol, const size_t maxiter) { return start (tol, maxiter, false); };
@@ -118,7 +117,7 @@ public:
 	double	residual () { return _residual_; }
 
 	// recover the input data
-	mm_real	*recover ();
+	double	*recover ();
 
 protected:
 	void	_initialize_ (); 	// initialize zeta, s, and u
@@ -143,15 +142,15 @@ protected:
 	double	_soft_threshold_ (double gamma, double lambda);
 
 	// normalize matrix K and return weighting
-	mm_real	*_normalize_ (mm_real *K);
+	double	*_normalize_ (size_t m, size_t n, double *K);
 	// compute inv(C) using cholesky decomposition
-	void	_cholinv_ (mm_real *C);
+	void	_cholinv_ (char uplo, size_t n, double *C);
 	// compute inv(C) using LU decomposition
-	void	_LUinv_ (mm_real *C);
+	void	_LUinv_ (size_t m, size_t n, double *C);
 	// compute inv(X * X.T + coef * I)
-	mm_real	*_Cinv_SMW_ (double coef, mm_real *K);
+	double	*_Cinv_SMW_ (double coef, size_t m, size_t n, double *K);
 	// compute (I - X.T * Ci * X) * b / coef
-	mm_real	*_inv_SMW_ (double coef, mm_real *X, mm_real *Ci, mm_real *b);
+	double	*_inv_SMW_ (double coef, size_t m, size_t n, double *K, double *Ci, double *b);
 
 private:
 	void	__init__ ();

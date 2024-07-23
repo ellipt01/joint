@@ -60,47 +60,49 @@
 ***/
 class mADMM : public ADMM {
 
+	size_t	_m_;
+	size_t	_n_;
+
 	// input data
-	mm_real	*_f_;		// magnetic anomaly
-	mm_real	*_g_;		// gravity anomaly
+	double	*_f_;		// magnetic anomaly
+	double	*_g_;		// gravity anomaly
 
 	// transform matrix
-	mm_real	*_X_;		// magnetic kernel
-	mm_real	*_Y_;		// gravity kernel
+	double	*_X_;		// magnetic kernel
+	double	*_Y_;		// gravity kernel
 
 	// weighting
-	mm_real	*_wx_;
-	mm_real	*_wy_;
+	double	*_wx_;
+	double	*_wy_;
 
-	mm_real	*_beta_;	// magnetization
-	mm_real	*_rho_;		// density
+	double	*_beta_;	// magnetization
+	double	*_rho_;		// density
 
-	mm_real	*_beta_prev_;	// backup magnetization
-	mm_real	*_rho_prev_;	// backup density
+	double	*_beta_prev_;	// backup magnetization
+	double	*_rho_prev_;	// backup density
 
-	mm_real	*_cx_;		// = X.T * f
-	mm_real	*_cy_;		// = Y.T * g
-	mm_real	*_bx_;		// = cx + mu * (s + u)[1:size2] + nu * (t + v)[1:size2]
-	mm_real	*_by_;		// = cy + mu * (s + u)[size2:2*size2] + nu * (t + v)[size2:2*size2]
-	mm_real	*_CXi_;		// = (X * X.T + (mu + nu) * I)^-1
-	mm_real	*_CYi_;		// = (Y * Y.T + (mu + nu) * I)^-1
+	double	*_cx_;		// = X.T * f
+	double	*_cy_;		// = Y.T * g
+	double	*_bx_;		// = cx + mu * (s + u)[1:size2] + nu * (t + v)[1:size2]
+	double	*_by_;		// = cy + mu * (s + u)[size2:2*size2] + nu * (t + v)[size2:2*size2]
+	double	*_CXi_;		// = (X * X.T + (mu + nu) * I)^-1
+	double	*_CYi_;		// = (Y * Y.T + (mu + nu) * I)^-1
 
 	double	_residual_;
 
 public:
 	mADMM () { __init__ (); }
 	mADMM (double lambda1, double lambda2, double mu);
-	mADMM (double lambda1, double lambda2, double mu, double nu, mm_real *lower);
 
-	mm_real	*get_beta ();
-	mm_real	*get_rho ();
+	double	*get_beta ();
+	double	*get_rho ();
 
-	mm_real	*get_wx () { return _wx_; } // weight for magkernel matrix
-	mm_real	*get_wy () { return _wy_; } // weight for grvkernel matrix
-	mm_real	*get_CXi () { return _CXi_; } // inverse for magkernel matrix
-	mm_real	*get_CYi () { return _CYi_; } //             grvkernel matrix
+	double	*get_wx () { return _wx_; } // weight for magkernel matrix
+	double	*get_wy () { return _wy_; } // weight for grvkernel matrix
+	double	*get_CXi () { return _CXi_; } // inverse for magkernel matrix
+	double	*get_CYi () { return _CYi_; } //             grvkernel matrix
 
-	void	simeq (mm_real *f, mm_real *g, mm_real *X, mm_real *Y, bool normalize);
+	void	simeq (size_t size1, size_t size2, double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower);
 
 	size_t	start (const double tol, const size_t maxiter) { return start (tol, maxiter, false); };
 	size_t	start (const double tol, const size_t maxiter, bool verbos);
@@ -108,7 +110,7 @@ public:
 
 	double	residual () { return _residual_; }
 
-	void	recover (mm_real *f, mm_real *g);
+	void	recover (double *f, double *g);
 
 protected:
 	void	_initialize_ (); // initialize zeta, t, and v

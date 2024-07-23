@@ -4,12 +4,23 @@
 #include <cfloat>
 
 #include "mgcal.h"
-#include "mmreal.h"
 
 #include "Kernel.h"
 #include "ADMM.h"
 #include "mADMM.h"
 #include "Joint.h"
+
+#ifdef __cplusplus
+	extern "C" {
+#endif // __cplusplus
+
+static size_t	ione = 1;
+static double	dzero = 0.;
+static double	done = 1.;
+static double	dmone = -1.;
+
+size_t	idamax_ (size_t *n, double *x, size_t *inc);
+void	dscal_ (size_t *n, double *scale, double *x, size_t *inc);
 
 static char *
 get_toolname (char *str)
@@ -36,7 +47,6 @@ Joint::usage ()
 	fprintf (stderr, "[optional]\n");
 	fprintf (stderr, "       -t <terrain filename>\n");
 	fprintf (stderr, "       -s <setting filename:default is settings.par>\n");
-	fprintf (stderr, "       -x (export kernel matrices)\n");
 	fprintf (stderr, "       -v (verbos mode)\n");
 	fprintf (stderr, "       -h (show this message)\n");
 	fprintf (stderr, "[notice]\n");
@@ -69,10 +79,10 @@ Joint::start (bool normalize)
 	if (_f_ == NULL || _K_ == NULL || _g_ == NULL || _G_ == NULL) _simeq_ ();
 
 	// scale gravity anomaly
-	size_t	ifamax = mm_real_iamax (_f_);
-	double	famax = fabs (_f_->data[ifamax]);
-	size_t	igamax = mm_real_iamax (_g_);
-	double	gamax = fabs (_g_->data[igamax]);
+	size_t	ifamax = idamax_ (&_size1_, _f_, &ione);
+	double	famax = fabs (_f_[ifamax - 1]);
+	size_t	igamax = idamax_ (&_size1_, _g_, &ione);
+	double	gamax = fabs (_g_[igamax - 1]);
 
 	_scale_ = famax / gamax;
 	std::cerr << "scale = " << _scale_ << std::endl;
@@ -81,24 +91,15 @@ Joint::start (bool normalize)
 		fprintf (fp, "%.8e\n", _scale_);
 		fclose (fp);
 	}
-	mm_real_xj_scale (_g_, 0, _scale_);
+	dscal_ (&_size1_, &_scale_, _g_, &ione);
 
 	if (!_admm_) {
-		_admm_ = new mADMM (_lambda1_, _lambda2_, _mu_, _nu_, _lower_);
-		_admm_->simeq (_f_, _g_, _K_, _G_, normalize);
+		_admm_ = new mADMM (_lambda1_, _lambda2_, _mu_);
+		_admm_->simeq (_size1_, _size2_, _f_, _g_, _K_, _G_, normalize, _nu_, _lower_);
 	}
 	// export weight for kernel matrix
 	_export_weights_ ();
 	return _admm_->start (_tolerance_, _maxiter_, _verbos_);
-}
-
-size_t
-Joint::restart ()
-{
-	if (!_admm_) throw std::runtime_error ("admm object has not yet been instantiated. Call start() first.");
-
-	_admm_->set_params (_lambda1_, _lambda2_);
-	return _admm_->restart (_tolerance_, _maxiter_);
 }
 
 // return residual (max of primal and dual residuals)
@@ -110,34 +111,36 @@ Joint::residual ()
 }
 
 // recover magnetic and gravity anomalies
-// and store them into mmreal *f and mm_real *g
+// and store them into f and g
 void
-Joint::recover (mm_real *f, mm_real *g)
+Joint::recover (double *f, double *g)
 {
 	_admm_->recover (f, g);
-	mm_real_xj_scale (g, 0, 1. / _scale_);
+	double	scale = 1. / _scale_;
+	dscal_ (&_size1_, &scale, g, &ione);
 }
 
 // get instance of magnetization model
 // depth weighting is removed
-mm_real	*
+double *
 Joint::get_beta ()
 {
-	mm_real	*_beta_ = _admm_->get_beta ();
-	mm_real	*beta = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _beta_->m, 1, _beta_->m);
-	mm_real_memcpy (beta, _beta_);
+	double	*_beta_ = _admm_->get_beta ();
+	double	*beta = new double [_size2_];
+	for (size_t j = 0; j < _size2_; j++) beta[j] = _beta_[j];
 	return beta;
 }
 
 // get instance of density model
 // depth weighting is removed
-mm_real *
+double *
 Joint::get_rho ()
 {
-	mm_real	*_rho_ = _admm_->get_rho ();
-	mm_real	*rho = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _rho_->m, 1, _rho_->m);
-	mm_real_memcpy (rho, _rho_);
-	mm_real_xj_scale (rho, 0, 1. / _scale_);
+	double	*_rho_ = _admm_->get_rho ();
+	double	*rho = new double [_size2_];
+	for (size_t j = 0; j < _size2_; j++) rho[j] = _rho_[j];
+	double	scale = 1. / _scale_;
+	dscal_ (&_size2_, &scale, rho, &ione);
 	return rho;
 }
 
@@ -150,8 +153,6 @@ Joint::fwrite_inline (FILE *stream)
 	if (_fn_ter_) fprintf (stream, "terrain file:\t%s\n", _fn_ter_); 
 	if (_alpha_ > 0.) fprintf (stream, "alpha,lambda:\t%.4e,%.4e\n", _alpha_, _lambda_);
 	else fprintf (stream, "lambda1,lambda2:\t%.4e,%.4e\n", _lambda1_, _lambda2_);
-	fprintf (stream, "export matrix: ");
-	(_export_matrix_) ? fprintf (stream, "true\n") : fprintf (stream, "false\n");
 }
 
 // fwrite setting specified by settings file
@@ -183,8 +184,8 @@ Joint::export_results ()
 	_fwrite_model_ (fp);
 	fclose (fp);
 
-	mm_real	*fr = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _magdata_->n, 1, _magdata_->n);
-	mm_real	*gr = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, _grvdata_->n, 1, _grvdata_->n);
+	double	*fr = new double [_size1_];
+	double	*gr = new double [_size1_];
 
 	// recover input magnetic and gravity anomalies
 	recover (fr, gr);
@@ -192,21 +193,22 @@ Joint::export_results ()
 	fp = fopen ("recover_mag.data", "w");
 	if (!fp) throw std::runtime_error ("cannot open file recover_mag.data");
 
-	fwrite_data_array_with_data (fp, _magdata_, fr->data, "%.4f\t%.4f\t%.4f\t%.4f");
-	mm_real_free (fr);
+	fwrite_data_array_with_data (fp, _magdata_, fr, "%.4f\t%.4f\t%.4f\t%.4f");
+	delete [] fr;
 	fclose (fp);
 
 	fp = fopen ("recover_grv.data", "w");
 	if (!fp) throw std::runtime_error ("cannot open file recover_grv.data");
 
-	fwrite_data_array_with_data (fp, _grvdata_, gr->data, "%.4f\t%.4f\t%.4f\t%.4f");
-	mm_real_free (gr);
+	fwrite_data_array_with_data (fp, _grvdata_, gr, "%.4f\t%.4f\t%.4f\t%.4f");
+	delete [] gr;
 	fclose (fp);
 
 	return;
 }
 
 /*** protected methods ***/
+// read inline options
 void
 Joint::_read_inline_ (int argc, char **argv)
 {
@@ -218,7 +220,7 @@ Joint::_read_inline_ (int argc, char **argv)
 	double	log10_lambda, log10_lambda1, log10_lambda2;
 
 	char	opt;
-	while ((opt = getopt (argc, argv, ":f:g:l:a:s:t:xvh")) != -1) {
+	while ((opt = getopt (argc, argv, ":f:g:l:a:s:t:vh")) != -1) {
 		switch (opt) {
 			case 'f':
 				strcpy (_fn_mag_, optarg);
@@ -258,10 +260,6 @@ Joint::_read_inline_ (int argc, char **argv)
 				
 				break;
 
-			case 'x':
-				_export_matrix_ = true;
-				break;
-
 			case 'v':
 				_verbos_ = true;
 				break;
@@ -283,6 +281,7 @@ Joint::_read_inline_ (int argc, char **argv)
 		throw std::runtime_error ("-l and -a options cannot be used simultaneously.");
 }
 
+// read settings file
 void
 Joint::_fread_settings_ (FILE *stream)
 {
@@ -331,8 +330,10 @@ Joint::_fread_settings_ (FILE *stream)
 	if (!ngrid_specified) throw std::runtime_error ("number of grid not specified");
 	if (!range_specified) throw std::runtime_error ("range of model space not specified");
 	if (!incdec_specified) throw std::runtime_error ("inclinations and declinations are not specified");
+	_size2_ = _nx_ * _ny_ * _nz_;
 }
 
+// read data files
 void
 Joint::_read_data_ ()
 {
@@ -353,19 +354,23 @@ Joint::_read_data_ ()
 	}
 	_grvdata_ = fread_data_array (fp);
 	fclose (fp);
+
+	if (_magdata_->n != _grvdata_->n) throw std::runtime_error ("numbers of magnetic and gravity data incompatible.");
+	_size1_ = _magdata_->n;
 }
 
+// register lower bound constraint
 void
 Joint::_set_lower_bounds_ ()
 {
-	size_t	m = _nx_ * _ny_ * _nz_;
-	_lower_ = mm_real_new (MM_REAL_DENSE, MM_REAL_GENERAL, 2 * m, 1, 2 * m);
-	for (size_t i = 0; i < m; i++) {
-		_lower_->data[i] = _beta_lower_;
-		_lower_->data[m + i] = _rho_lower_;
+	_lower_ = new double [2 * _size2_];
+	for (size_t j = 0; j < _size2_; j++) {
+		_lower_[j] = _beta_lower_;
+		_lower_[j + _size2_] = _rho_lower_;
 	}
 }
 
+// register terrai data
 void
 Joint::_set_surface_ (size_t c, double *zsurf)
 {
@@ -377,6 +382,7 @@ Joint::_set_surface_ (size_t c, double *zsurf)
 	for (size_t i = 0; i < c; i++) _zsurf_[i] = zsurf[i];
 }
 
+// set simultaneous equation for joint inversion
 void
 Joint::_simeq_ ()
 {
@@ -398,16 +404,13 @@ Joint::_simeq_ ()
 	}
 	_set_mag_ (_exf_inc_, _exf_dec_, _mgz_inc_, _mgz_dec_, _magdata_);
 	_set_grv_ (_grvdata_);
-
-	if (_export_matrix_) _export_matrices_ ();
-
 }
 
+// set magnetic data, inclination, and declination
 void
 Joint::_set_mag_ (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec, data_array *data)
 {
-	size_t	n = data->n;
-	_f_ = mm_real_view_array (MM_REAL_DENSE, MM_REAL_GENERAL, n, 1, n, data->data);
+	_f_ = data->data;
 
 	_magker_ = new MagKernel (exf_inc, exf_dec, mgz_inc, mgz_dec);
 	_magker_->set_range (_nx_, _ny_, _nz_, _xrange_, _yrange_, _zrange_, 1000.);
@@ -416,11 +419,11 @@ Joint::_set_mag_ (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec
 	_K_ = _magker_->get ();
 }
 
+// set gravity data
 void
 Joint::_set_grv_ (data_array *data)
 {
-	size_t	n = data->n;
-	_g_ = mm_real_view_array (MM_REAL_DENSE, MM_REAL_GENERAL, n, 1, n, data->data);
+	_g_ = data->data;
 
 	_grvker_ = new GravKernel ();
 	_grvker_->set_range (_nx_, _ny_, _nz_, _xrange_, _yrange_, _zrange_, 1000.);
@@ -429,24 +432,25 @@ Joint::_set_grv_ (data_array *data)
 	_G_ = _grvker_->get ();
 }
 
+// write derived model into a file
 void
 Joint::_fwrite_model_ (FILE *fp)
 {
 	if (_magker_ == NULL) throw std::runtime_error ("magnetic kernel is not specified. Call set_mag()");
 	if (_grvker_ == NULL) throw std::runtime_error ("gravity kernel is not specified. Call set_grv()");
 
-	mm_real	*beta = get_beta ();
-	mm_real	*rho = get_rho ();
+	double	*beta = get_beta ();
+	double	*rho = get_rho ();
 
 	grid		*grd = _magker_->get_grid ();
 	vector3d	*pos = vector3d_new (0., 0., 0.);
 	for (size_t k = 0; k < grd->n; k++) {
 		grid_get_nth (grd, k, pos, NULL);
-		fprintf (fp, "%.4e\t%.4e\t%.4e\t%.8e\t%.8e\n", pos->x, pos->y, pos->z, beta->data[k], rho->data[k]);
+		fprintf (fp, "%.4e\t%.4e\t%.4e\t%.8e\t%.8e\n", pos->x, pos->y, pos->z, beta[k], rho[k]);
 	}
 
-	mm_real_free (beta);
-	mm_real_free (rho);
+	delete [] beta;
+	delete [] rho;
 
 #ifdef DEBUG
 	FILE	*fp_grd = fopen ("grid.data", "w");
@@ -459,37 +463,26 @@ Joint::_fwrite_model_ (FILE *fp)
 	delete [] pos;
 }
 
+// export depth weightings
 void
 Joint::_export_weights_ ()
 {
 	FILE	*fp = fopen ("wx.vec", "w");
 	if (fp) {
-		mm_real_fwrite (fp, _admm_->get_wx (), "%.8f");
+		double	*wx = _admm_->get_wx ();
+		for (size_t j = 0; j < _size2_; j++) fprintf (fp, "%.8e\n", wx[j]);
 		fclose (fp);
 	}
 	fp = fopen ("wy.vec", "w");
 	if (fp) {
-		mm_real_fwrite (fp, _admm_->get_wy (), "%.8f");
-		fclose (fp);
-	}
-}
-
-void
-Joint::_export_matrices_ ()
-{
-	FILE	*fp = fopen ("K.mat", "w");
-	if (fp) {
-		mm_real_fwrite (fp, _K_, "%.8f");
-		fclose (fp);
-	}
-	fp = fopen ("G.mat", "w");
-	if (fp) {
-		mm_real_fwrite (fp, _G_, "%.8f");
+		double	*wy = _admm_->get_wy ();
+		for (size_t j = 0; j < _size2_; j++) fprintf (fp, "%.8e\n", wy[j]);
 		fclose (fp);
 	}
 }
 
 /*** private methods ***/
+// initialize
 void
 Joint::__init__ ()
 {
@@ -534,10 +527,10 @@ Joint::__init__ ()
 
 	_admm_ = NULL;
 
-	_export_matrix_ = false;
 	_verbos_ = false;
 }
 
+// count number of data
 size_t
 Joint::__count__ (FILE *fp)
 {
@@ -548,6 +541,7 @@ Joint::__count__ (FILE *fp)
 	return c;
 }
 
+// read terrain file
 double *
 Joint::__read_terrain__ (FILE *fp, const size_t c)
 {
@@ -563,4 +557,7 @@ Joint::__read_terrain__ (FILE *fp, const size_t c)
 	return zsurf;
 }
 
+#ifdef __cplusplus
+	}
+#endif // __cplusplus
 

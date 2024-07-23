@@ -59,6 +59,16 @@ class Joint
 	size_t		_ny_;
 	size_t		_nz_;
 
+	// number of individual data
+	size_t		_size1_;
+	// number of subsurface grid cells
+	size_t		_size2_;
+
+	// first dimension of joint equation (= 2 * size1)
+	size_t		_m_;
+	// second dimension of joint equation (= 2 * size2)
+	size_t		_n_;
+
 	// range of the model space
 	double		_xrange_[2]; // Eastward positive
 	double		_yrange_[2]; // Northward positive
@@ -71,19 +81,19 @@ class Joint
 	double		_nu_;
 	double		_beta_lower_; // magnetization lower bound
 	double		_rho_lower_; // density lower bound
-	mm_real		*_lower_; // store the above bounds
+	double		*_lower_; // store the above bounds
 
 	// magnetic and gravity observed data
 	data_array	*_magdata_;
 	data_array	*_grvdata_;
 
 	// magnetic data vector and kernel matrix
-	mm_real		*_f_;
-	mm_real		*_K_;
+	double		*_f_;
+	double		*_K_;
 
 	// gravity data vector and kernel matrix
-	mm_real		*_g_;
-	mm_real		*_G_;
+	double		*_g_;
+	double		*_G_;
 
 	// scale for magnetic and gravity data
 	double		_scale_; // = |g|_{infinity} / |f|_{infinity}
@@ -132,11 +142,11 @@ public:
 	double		residual ();
 
 	// recover input anomalies using derived model
-	void		recover (mm_real *f, mm_real *g);
+	void		recover (double *f, double *g);
 
 	// gtet model instances derived by the inversion
-	mm_real		*get_beta (); // = zeta[:m]
-	mm_real		*get_rho ();  // = zeta[m:]
+	double		*get_beta (); // = zeta[:m]
+	double		*get_rho ();  // = zeta[m:]
 
 	// displays the settings specified
 	// in the inline options and the settings file.
@@ -159,14 +169,18 @@ protected:
 	// register terrai data
 	void		_set_surface_ (size_t c, double *zsurf);
 
+	// set simultaneous equation for joint inversion
 	void		_simeq_ ();
 
+	// set magnetic data, inclination, and declination
 	void		_set_mag_ (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec, data_array *data);
+	// set gravity data
 	void		_set_grv_ (data_array *data);
 
+	// write derived model into a file
 	void		_fwrite_model_ (FILE *fp);
+	// export depth weightings
 	void		_export_weights_ ();
-	void		_export_matrices_ ();
 	
 private:
 	// initialize
