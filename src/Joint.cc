@@ -271,6 +271,7 @@ Joint::_read_inline_ (int argc, char **argv)
 
 			case 'h':
 				usage ();
+				exit (1);
 
 			case '?':
 			default:
