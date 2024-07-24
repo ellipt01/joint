@@ -38,11 +38,11 @@ void
 Joint::usage ()
 {
 	fprintf (stderr, "=====   PROGRAM   =====\n");
-	fprintf (stderr, "%s version %s\n", _toolname_, _version_info_);
+	fprintf (stderr, "%s version %s\n\n", _toolname_, _version_info_);
 
 	fprintf (stderr, "===== DESCRIPTION =====\n");
 	fprintf (stderr, "This program performs joint inversion of magnetic and gravity data\n");
-	fprintf (stderr, "based on L2 norm and group lasso combined regularization.\n");	
+	fprintf (stderr, "based on L2 norm and group lasso combined regularization.\n\n");	
 
 	fprintf (stderr, "===== USAGE: %s =====\n", _toolname_);
 	fprintf (stderr, "       -f <magnetic anomaly filename>\n");
@@ -56,7 +56,7 @@ Joint::usage ()
 	fprintf (stderr, "       -h (show this message)\n");
 	fprintf (stderr, "[notice]\n");
 	fprintf (stderr, "       If log10(lambda) <= -16, lambda is set to 0.\n");
-	fprintf (stderr, "       The -l and -a options are exclusive and cannot be used simultaneously.\n");
+	fprintf (stderr, "       The -l and -a options are exclusive and cannot be used simultaneously.\n\n");
 }
 
 // read inline options and settings file
