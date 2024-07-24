@@ -10,6 +10,8 @@
 #include "mADMM.h"
 #include "Joint.h"
 
+#include "_version_.h"
+
 #ifdef __cplusplus
 	extern "C" {
 #endif // __cplusplus
@@ -35,11 +37,14 @@ get_toolname (char *str)
 void
 Joint::usage ()
 {
+	fprintf (stderr, "=====   PROGRAM   =====\n");
+	fprintf (stderr, "%s version %s\n", _toolname_, _version_info_);
+
 	fprintf (stderr, "===== DESCRIPTION =====\n");
 	fprintf (stderr, "This program performs joint inversion of magnetic and gravity data\n");
-	fprintf (stderr, "based on L2 norm and group lasso combined regularization.\n\n");	
+	fprintf (stderr, "based on L2 norm and group lasso combined regularization.\n");	
 
-	fprintf (stderr, "USAGE: %s\n", _toolname_);
+	fprintf (stderr, "===== USAGE: %s =====\n", _toolname_);
 	fprintf (stderr, "       -f <magnetic anomaly filename>\n");
 	fprintf (stderr, "       -g <gravitic anomaly filename>\n");
 	fprintf (stderr, "       -l <log10(lambda1):log10(lambda2)>\n");

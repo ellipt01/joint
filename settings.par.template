@@ -1,32 +1,34 @@
 # parameter settings
 # ***FORMAT***
-# identifier(1-6). explanations:	VALUES, VALUES,...
+# identifier(1-6). explanations:	VALUE, VALUES,...
 #
 # *** DESCRIPTION ***
 # 1. number of grid cells: nx, ny, nz
-# 2. area of analysis: xleft, xright, yleft, yright, ztop, zbottom(km)
-# 3. magnetic inclination and declination: inc(degree), dec(degree)
+# 2. study area: xleft(West), xright(East), yleft(South), yright(North), ztop, zbottom(km)
+# 3. inclination and declination of magnetization and geomagnetic field:
+#	 exf_inc, exf_dec, mgz_inc, and mgz_dec(degree).
 # 4. conversion tolerance(tol) and maximum num of iterations(maxiter) for inversion
 # 5. penaltyn parameter: mu
-# 6. bound-constraint:
-#	 penalty param(nu),lower-bound for magnetization(beta0:A/m),and density(rho0:g/cm^3)
+# 6. bound-constraint: penalty parameter(nu),lower-bound for magnetization(beta0:A/m),
+#	 and density(rho0:g/cm^3)
 #	 if nu =< 0, lower bound is not applied.
 
 # number of grid cells
-1. nx, ny, nz:			40, 40, 20
+1.nx, ny, nz:						40, 40, 20
 
 # x, y, z range
-2. x, y, zrange (km):	-2., 2., -2., 2., 0., -2.
+2.x,y,zrange (km):					-2., 2., -2., 2., 0., -2.
 
-# inclination, declination
-3. inc, dec(deg.):		45., -7., 45., -7.
+# inclination, declination of geomagnetic field(exf_inc,dec)
+# and magnetization(mgz_inc,dec)
+3.exf_inc,dec,mgz_inc,dec(deg.):	45., -7., 45., -7.
 
 # tolerance, maxiter
-4. tol, maxiter:		1.e-5, 100000
+4.tol, maxiter:						1.e-5, 100000
 
-# mu
-5. mu:					1.0
+# penalty parameter mu
+5.mu:								1.0
 
-# nu, beta0, rho0
-6. nu, beta0, rho0:		0., 0., 0.
+# penalty parameter nu, and lower bounds beta0, rho0
+6.nu, beta0, rho0:					0., 0., 0.
 
