@@ -102,7 +102,7 @@ public:
 	double	*get_zeta ();
 
 	// get depth weightings
-	double	*get_w () { return _w_; } // weight for kernel matrix
+	double	*get_w () { return _w_; } // get depth weighting of kernel matrix
 
 	// set regulatization parameters
 	void	set_params (double lambda1, double lambda2);
@@ -111,7 +111,6 @@ public:
 	// start ADMM iteration until model converged
 	size_t	start (const double tol, const size_t maxiter) { return start (tol, maxiter, false); };
 	size_t	start (const double tol, const size_t maxiter, bool verbos);
-	size_t	restart (const double tol, const size_t maxiter);
 
 	// get residual
 	double	residual () { return _residual_; }
@@ -150,7 +149,7 @@ protected:
 	// compute inv(X * X.T + coef * I)
 	double	*_Cinv_SMW_ (double coef, size_t m, size_t n, double *K);
 	// compute (I - X.T * Ci * X) * b / coef
-	double	*_inv_SMW_ (double coef, size_t m, size_t n, double *K, double *Ci, double *b);
+	double	*_eval_zeta_SMW_ (double coef, size_t m, size_t n, double *K, double *Ci, double *b);
 
 private:
 	void	__init__ ();

@@ -97,16 +97,14 @@ public:
 	double	*get_beta ();
 	double	*get_rho ();
 
-	double	*get_wx () { return _wx_; } // weight for magkernel matrix
-	double	*get_wy () { return _wy_; } // weight for grvkernel matrix
-	double	*get_CXi () { return _CXi_; } // inverse for magkernel matrix
-	double	*get_CYi () { return _CYi_; } //             grvkernel matrix
+	double	*get_wx () { return _wx_; } // get depth weighting of magnetic kernel matrix
+	double	*get_wy () { return _wy_; } //                        gravity kernel matrix
 
 	void	simeq (size_t size1, size_t size2, double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower);
 
+	// start ADMM iteration until model converged
 	size_t	start (const double tol, const size_t maxiter) { return start (tol, maxiter, false); };
 	size_t	start (const double tol, const size_t maxiter, bool verbos);
-	size_t	restart (const double tol, const size_t maxiter);
 
 	double	residual () { return _residual_; }
 
@@ -115,23 +113,25 @@ public:
 protected:
 	void	_initialize_ (); // initialize zeta, t, and v
 
-	void	_calc_Ci_ ();   /* compute CXi = (X * X.T + mu * I)^-1
-						     and     CYi = (Y * Y.T + mu * I)^-1 */
-	void	_update_bx_ (); // update bx = X.T * f + mu (t + v)[1:M]
-	void	_update_by_ (); // update by = Y.T * g + mu (t + v)[M:2M]
-	void	_update_b_ ();  // update bx and by
-
 	// ADMM iteration
-	void	_update_zeta_ ();
-	void	_update_s_ ();
-	void	_update_t_ ();
-
-	void	_update_u_ ();
-	void	_update_v_ ();
+	void	_update_bx_ (); // update bx = X.T * f + mu * (s + u)[1:M] + nu * (t + v)[1:M]
+	void	_update_by_ (); // update by = Y.T * g + mu * (s + u)[M:2M] + nu * (t + v)[M:2M]
+	void	_update_b_ ();  // update bx and by
+	void	_update_zeta_ (); // update zeta = [beta; rho]
+	void	_update_s_ (); // update slack vector
+	void	_update_t_ (); // update slack vector for bound constraint
+	void	_update_u_ (); // update Lagrange dual
+	void	_update_v_ (); // update Lagrange dual for bound constraint
 
 	void	_one_cycle_ ();	// perform ADMM iteration at once
 
-	double	_eval_residuals_ (); // for convergence check
+	double	_eval_residuals_ (); // evaluate maximum of primal and dual residuals
+
+	void	_calc_Ci_ ();   // compute CXi = (X * X.T + coef * I)^-1 and CYi = (Y * Y.T + coef * I)^-1
+	// compute beta = (I - X.T * CXi * X) * bx / coef
+	double	*_eval_beta_SMW_ (double coef, size_t m, size_t n, double *X, double *CXi, double *bx);
+	// compute rho = (I - Y.T * CYi * Y) * by / coef
+	double	*_eval_rho_SMW_ (double coef, size_t m, size_t n, double *Y, double *CYi, double *by);
 
 	// soft threshold for L2 + group Lasso
 	double	_soft_threshold_ (double gamma, double lambda);

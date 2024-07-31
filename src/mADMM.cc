@@ -181,17 +181,6 @@ mADMM::_initialize_ ()
 	}
 }
 
-// compute CXi and CYi:
-// CXi = (X.T * X + mu * I)^-1, CYi = (Y.T * Y + mu * I)^-1
-void
-mADMM::_calc_Ci_ ()
-{
-	if (_CXi_) delete [] _CXi_;
-	_CXi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_);
-	if (_CYi_) delete [] _CYi_;
-	_CYi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _Y_);
-}
-
 // update bx and by:
 // bx = X.T * f + mu * (t + v)[1:M], by = Y.T * g + mu * (t + v)[M:2M]
 void
@@ -249,9 +238,9 @@ mADMM::_update_zeta_ ()
 		delete [] _rho_;
 	}
 	// beta = (bx - X.T * CXi * X * bx) / (mu + nu)
-	_beta_ = _inv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_, _CXi_, _bx_);
+	_beta_ = _eval_beta_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_, _CXi_, _bx_);
 	// rho  = (by - Y.T * CYi * Y * by) / (mu + nu)
-	_rho_  = _inv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _Y_, _CYi_, _by_);
+	_rho_  = _eval_rho_SMW_ (_mu_ + _nu_, _size1_, _size2_, _Y_, _CYi_, _by_);
 }
 
 // update s:
@@ -351,7 +340,34 @@ mADMM::_eval_residuals_ ()
 	return (dr1 >= dr2) ? dr1 : dr2;
 }
 
-// soft threshold (overwrited): S(x, l) = (x - l)+
+// compute CXi and CYi:
+// CXi = (X.T * X + (mu + nu) * I)^-1, CYi = (Y.T * Y + (mu + nu) * I)^-1
+void
+mADMM::_calc_Ci_ ()
+{
+	if (_CXi_) delete [] _CXi_;
+	_CXi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_);
+	if (_CYi_) delete [] _CYi_;
+	_CYi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _Y_);
+}
+
+// compute beta = (I - X.T * CXi * X) * bx / coef
+// interface of _eval_zeta_SMW_ ()
+double *
+mADMM::_eval_beta_SMW_ (double coef, size_t m, size_t n, double *X, double *CXi, double *bx)
+{
+	return _eval_zeta_SMW_ (coef, m, n, X, CXi, bx);
+}
+
+// compute rho = (I - Y.T * CYi * Y) * by / coef
+// interface of _eval_zeta_SMW_ ()
+double *
+mADMM::_eval_rho_SMW_ (double coef, size_t m, size_t n, double *Y, double *CYi, double *by)
+{
+	return _eval_zeta_SMW_ (coef, m, n, Y, CYi, by);
+}
+
+// soft threshold (overwrited): S(x, l) = max(x - l, 0)
 double
 mADMM::_soft_threshold_ (double gamma, double lambda)
 {

@@ -203,7 +203,7 @@ ADMM::_update_zeta_ ()
 		delete [] _zeta_;
 	}
 	// zeta = (b - X.T * Ci * X * b) / (mu + nu)
-	_zeta_ = _inv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_, _Ci_, _b_);
+	_zeta_ = _eval_zeta_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_, _Ci_, _b_);
 }
 
 // update s:
@@ -341,7 +341,10 @@ ADMM::_LUinv_ (size_t m, size_t n, double *C)
 	delete [] work;
 }
 
-// compute (K * K.T + coef * I)^-1:
+// compute inverse (K * K.T + coef * I)^-1 for the data-space inversion
+// using following Sherman Morrison Woodbury (SMW) formula:
+// (c * I + K.T * K)^-1 = (I - K.T * (c * I + K * K.T)^-1 * K) / c
+// This method computes Ci = (c * I + K * K.T)^-1
 double *
 ADMM::_Cinv_SMW_ (double coef, size_t m, size_t n, double *K)
 {
@@ -357,9 +360,10 @@ ADMM::_Cinv_SMW_ (double coef, size_t m, size_t n, double *K)
 	return Ci;
 }
 
-// compute (I - K.T * (K * K.T + coef * I)^-1 * K) * b / coef
+// compute zeta using SMW formula
+// via compute zeta = (I - K.T * (K * K.T + coef * I)^-1 * K) * b / coef
 double *
-ADMM::_inv_SMW_ (double coef, size_t m, size_t n, double *K, double *Ci, double *b)
+ADMM::_eval_zeta_SMW_ (double coef, size_t m, size_t n, double *K, double *Ci, double *b)
 {
 	double *zeta = new double [n];
 
