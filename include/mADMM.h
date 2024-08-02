@@ -60,16 +60,16 @@
 ***/
 class mADMM : public ADMM {
 
-	size_t	_m_;
-	size_t	_n_;
+	size_t	_m_;		// m = dim(f) + dim(g)
+	size_t	_n_;		// n = size(X, 2) + size(Y, 2)
 
 	// input data
 	double	*_f_;		// magnetic anomaly
 	double	*_g_;		// gravity anomaly
 
 	// transform matrix
-	double	*_X_;		// magnetic kernel
-	double	*_Y_;		// gravity kernel
+	double	*_X_;		// magnetic kernel matrix
+	double	*_Y_;		// gravity kernel matrix
 
 	// weighting
 	double	*_wx_;
@@ -123,7 +123,7 @@ protected:
 	void	_update_u_ (); // update Lagrange dual
 	void	_update_v_ (); // update Lagrange dual for bound constraint
 
-	void	_one_cycle_ ();	// perform ADMM iteration at once
+	void	_one_cycle_ ();	// perform ADMM iteration at once: updates b, zeta, s, t, t and v
 
 	double	_eval_residuals_ (); // evaluate maximum of primal and dual residuals
 

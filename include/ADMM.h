@@ -55,8 +55,8 @@
 ***/
 class ADMM {
 protected:
-	size_t	_size1_;	// num of row of the kernel matrix
-	size_t	_size2_;	// num of columns
+	size_t	_size1_;	// num of data (=dim(f)), row of the kernel matrix X
+	size_t	_size2_;	// num of subsurface grid cells, nim of columns of X
 
 	double	_lambda1_;	// regularization parameter for group lasso penalty
 	double	_lambda2_;	// regularization parameter for L2 norm penalty
