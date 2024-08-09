@@ -52,7 +52,7 @@ After running "make", "make install" creates the inversion program "jinv", the $
     [optional]
            -t <terrain filename>
            -s <setting filename:default is settings.par>
-	   -v (verbos mode)
+           -v (verbos mode)
            -h (show this message)
 
 The -l and -a options specify the regularization parameters $\lambda_1$ and $\lambda_2$.
