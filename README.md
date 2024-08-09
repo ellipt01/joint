@@ -51,8 +51,8 @@ After running "make", "make install" creates the inversion program "jinv", the $
            -a <alpha:log10(lambda)>
     [optional]
            -t <terrain filename>
-           -p <setting filename:default is settings.par>
-           -x (output kernel matrices)
+           -s <setting filename:default is settings.par>
+	   -v (verbos mode)
            -h (show this message)
 
 The -l and -a options specify the regularization parameters $\lambda_1$ and $\lambda_2$.
@@ -80,9 +80,6 @@ The terrain file specified by the -t option is the gridded terrain elevation fil
 
     x(km)  y(km)  z(elevation, km)
 If no terrain file is specified, the surface topography of the study area is assumed to be a flat plane. The terrain grid must be the same as that of the subsurface space specified in the settings file described below.
-
-If the -x option is specified, the kernel matrices $\mathbf{K}$ and $\mathbf{G}$ are written to the files "K.mat" and "G.mat", respectively, in MatrixMarket format.
-https://math.nist.gov/MatrixMarket/
 
 
 
