@@ -60,6 +60,9 @@
 ***/
 class mADMM : public ADMM {
 
+	size_t	_size1_mag_;	// = dim(f)
+	size_t	_size1_grv_;	// = dim(g)
+
 	size_t	_m_;		// m = dim(f) + dim(g)
 	size_t	_n_;		// n = size(X, 2) + size(Y, 2)
 
@@ -100,7 +103,8 @@ public:
 	double	*get_wx () { return _wx_; } // get depth weighting of magnetic kernel matrix
 	double	*get_wy () { return _wy_; } //                        gravity kernel matrix
 
-	void	simeq (size_t size1, size_t size2, double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower);
+	void	simeq (size_t size1_mag, size_t size1_grv, size_t size2,
+				   double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower);
 
 	// start ADMM iteration until model converged
 	size_t	start (const double tol, const size_t maxiter) { return start (tol, maxiter, false); };

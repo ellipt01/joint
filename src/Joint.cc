@@ -84,9 +84,9 @@ Joint::start (bool normalize)
 	if (_f_ == NULL || _K_ == NULL || _g_ == NULL || _G_ == NULL) _simeq_ ();
 
 	// scale gravity anomaly
-	size_t	ifamax = idamax_ (&_size1_, _f_, &ione);
+	size_t	ifamax = idamax_ (&_size1_mag_, _f_, &ione);
 	double	famax = fabs (_f_[ifamax - 1]);
-	size_t	igamax = idamax_ (&_size1_, _g_, &ione);
+	size_t	igamax = idamax_ (&_size1_grv_, _g_, &ione);
 	double	gamax = fabs (_g_[igamax - 1]);
 
 	_scale_ = famax / gamax;
@@ -96,11 +96,11 @@ Joint::start (bool normalize)
 		fprintf (fp, "%.8e\n", _scale_);
 		fclose (fp);
 	}
-	dscal_ (&_size1_, &_scale_, _g_, &ione);
+	dscal_ (&_size1_grv_, &_scale_, _g_, &ione);
 
 	if (!_admm_) {
 		_admm_ = new mADMM (_lambda1_, _lambda2_, _mu_);
-		_admm_->simeq (_size1_, _size2_, _f_, _g_, _K_, _G_, normalize, _nu_, _lower_);
+		_admm_->simeq (_size1_mag_, _size1_grv_, _size2_, _f_, _g_, _K_, _G_, normalize, _nu_, _lower_);
 	}
 	// export weight for kernel matrix
 	_export_weights_ ();
@@ -122,7 +122,7 @@ Joint::recover (double *f, double *g)
 {
 	_admm_->recover (f, g);
 	double	scale = 1. / _scale_;
-	dscal_ (&_size1_, &scale, g, &ione);
+	dscal_ (&_size1_grv_, &scale, g, &ione);
 }
 
 // get instance of magnetization model
@@ -189,8 +189,8 @@ Joint::export_results ()
 	_fwrite_model_ (fp);
 	fclose (fp);
 
-	double	*fr = new double [_size1_];
-	double	*gr = new double [_size1_];
+	double	*fr = new double [_size1_mag_];
+	double	*gr = new double [_size1_grv_];
 
 	// recover input magnetic and gravity anomalies
 	recover (fr, gr);
@@ -361,8 +361,14 @@ Joint::_read_data_ ()
 	_grvdata_ = fread_data_array (fp);
 	fclose (fp);
 
-	if (_magdata_->n != _grvdata_->n) throw std::runtime_error ("numbers of magnetic and gravity data incompatible.");
-	_size1_ = _magdata_->n;
+	//if (_magdata_->n != _grvdata_->n) throw std::runtime_error ("numbers of magnetic and gravity data incompatible.");
+	_size1_mag_ = _magdata_->n;
+	_size1_grv_ = _grvdata_->n;
+
+	if (_verbos_) {
+		std::cerr << "number of mag data: " << _size1_mag_ << std::endl;
+		std::cerr << "number of grv data: " << _size1_grv_ << std::endl;
+	}
 }
 
 // register lower bound constraint

@@ -31,12 +31,14 @@ mADMM::mADMM (double lambda1, double lambda2, double mu)
 
 // set simultaneous equations to be solved
 void
-mADMM::simeq (size_t size1, size_t size2, double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower)
+mADMM::simeq (size_t size1_mag, size_t size1_grv, size_t size2,
+			  double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower)
 {
-	_size1_ = size1;
+	_size1_mag_ = size1_mag;
+	_size1_grv_ = size1_grv;
 	_size2_ = size2;
 
-	_m_ = 2 * _size1_;
+	_m_ = _size1_mag_ + _size1_grv_;
 	_n_ = 2 * _size2_;
 
 	_f_ = f;
@@ -47,9 +49,9 @@ mADMM::simeq (size_t size1, size_t size2, double *f, double *g, double *X, doubl
 
 	if (normalize) {
 		if (_wx_) delete [] _wx_;
-		_wx_ = _normalize_ (_size1_, _size2_, _X_);
+		_wx_ = _normalize_ (_size1_mag_, _size2_, _X_);
 		if (_wy_) delete [] _wy_;
-		_wy_ = _normalize_ (_size1_, _size2_, _Y_);
+		_wy_ = _normalize_ (_size1_grv_, _size2_, _Y_);
 	}
 
 	if (nu > DBL_EPSILON && lower != NULL) {
@@ -122,8 +124,8 @@ mADMM::start (const double tol, const size_t maxiter, bool verbos)
 void
 mADMM::recover (double *f, double *g)
 {
-	dgemv_ (&notrans, &_size1_, &_size2_, &done, _X_, &_size1_, _beta_, &ione, &dzero, f, &ione);
-	dgemv_ (&notrans, &_size1_, &_size2_, &done, _Y_, &_size1_, _rho_,  &ione, &dzero, g, &ione);
+	dgemv_ (&notrans, &_size1_mag_, &_size2_, &done, _X_, &_size1_mag_, _beta_, &ione, &dzero, f, &ione);
+	dgemv_ (&notrans, &_size1_grv_, &_size2_, &done, _Y_, &_size1_grv_, _rho_,  &ione, &dzero, g, &ione);
 	return;
 }
 
@@ -133,7 +135,8 @@ mADMM::recover (double *f, double *g)
 void
 mADMM::_initialize_ ()
 {
-	if (_size1_ == 0 || _size2_ == 0) throw std::runtime_error ("size not specified");
+	if (_size1_mag_ == 0 || _size1_grv_ == 0) throw std::runtime_error ("number of data not specified");
+	if (_size2_ == 0) throw std::runtime_error ("number of grid cells not specified");
 
 	_residual_ = 0.;
 
@@ -190,7 +193,7 @@ mADMM::_update_bx_ ()
 	if (_bx_ == NULL) _bx_ = new double [_size2_];
 	if (_cx_ == NULL) {
 		_cx_ = new double [_size2_];
-		dgemv_ (&trans, &_size1_, &_size2_, &done, _X_, &_size1_, _f_, &ione, &dzero, _cx_, &ione);
+		dgemv_ (&trans, &_size1_mag_, &_size2_, &done, _X_, &_size1_mag_, _f_, &ione, &dzero, _cx_, &ione);
 	}
 	for (size_t i = 0; i < _size2_; i++) _bx_[i] = _cx_[i] + _mu_ * (_s_[i] + _u_[i]);
 	if (_apply_lower_bound_) {
@@ -205,7 +208,7 @@ mADMM::_update_by_ ()
 	if (_by_ == NULL) _by_ = new double [_size2_];
 	if (_cy_ == NULL) {
 		_cy_ = new double [_size2_];
-		dgemv_ (&trans, &_size1_, &_size2_, &done, _Y_, &_size1_, _g_, &ione, &dzero, _cy_, &ione);
+		dgemv_ (&trans, &_size1_grv_, &_size2_, &done, _Y_, &_size1_grv_, _g_, &ione, &dzero, _cy_, &ione);
 	}
 	for (size_t i = 0; i < _size2_; i++) _by_[i] = _cy_[i] + _mu_ * (_s_[i + _size2_] + _u_[i + _size2_]);
 	if (_apply_lower_bound_) {
@@ -238,9 +241,9 @@ mADMM::_update_zeta_ ()
 		delete [] _rho_;
 	}
 	// beta = (bx - X.T * CXi * X * bx) / (mu + nu)
-	_beta_ = _eval_beta_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_, _CXi_, _bx_);
+	_beta_ = _eval_beta_SMW_ (_mu_ + _nu_, _size1_mag_, _size2_, _X_, _CXi_, _bx_);
 	// rho  = (by - Y.T * CYi * Y * by) / (mu + nu)
-	_rho_  = _eval_rho_SMW_ (_mu_ + _nu_, _size1_, _size2_, _Y_, _CYi_, _by_);
+	_rho_  = _eval_rho_SMW_ (_mu_ + _nu_, _size1_grv_, _size2_, _Y_, _CYi_, _by_);
 }
 
 // update s:
@@ -346,9 +349,9 @@ void
 mADMM::_calc_Ci_ ()
 {
 	if (_CXi_) delete [] _CXi_;
-	_CXi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_);
+	_CXi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_mag_, _size2_, _X_);
 	if (_CYi_) delete [] _CYi_;
-	_CYi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _Y_);
+	_CYi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_grv_, _size2_, _Y_);
 }
 
 // compute beta = (I - X.T * CXi * X) * bx / coef
@@ -379,6 +382,10 @@ mADMM::_soft_threshold_ (double gamma, double lambda)
 void
 mADMM::__init__ ()
 {
+
+	_size1_mag_ = 0;
+	_size1_grv_ = 0;
+
 	_f_ = NULL;
 	_g_ = NULL;
 
