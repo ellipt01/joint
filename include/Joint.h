@@ -60,10 +60,10 @@ class Joint
 	size_t		_nz_;
 
 	// number of individual data
-	size_t		_size1_mag_;
-	size_t		_size1_grv_;
+	size_t		_size1_mag_;	// = dim(f)
+	size_t		_size1_grv_;	// = dim(g)
 	// number of subsurface grid cells
-	size_t		_size2_;
+	size_t		_size2_;	// = size(X, 2) = size(Y, 2)
 
 	// first dimension of joint equation (= size1_mag + size1_grv)
 	size_t		_m_;

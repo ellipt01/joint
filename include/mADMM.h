@@ -64,7 +64,7 @@ class mADMM : public ADMM {
 	size_t	_size1_grv_;	// = dim(g)
 
 	size_t	_m_;		// m = dim(f) + dim(g)
-	size_t	_n_;		// n = size(X, 2) + size(Y, 2)
+	size_t	_n_;		// n = size(X, 2) + size(Y, 2) = 2 * size(X, 2) (size(X, 2) = size(Y, 2))
 
 	// input data
 	double	*_f_;		// magnetic anomaly
