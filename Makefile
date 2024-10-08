@@ -7,7 +7,7 @@ LOCALLIBS	= -L./lib -lmgcal
 LIBS		= $(BLAS_LIB) -lm
 CFLAGS		= -O3
 CPPFLAGS	= -I. -I./include $(BLAS_CFLAGS)\
-			  -I./mgcal/include $(OPENMP_FLG)
+			  -I./mgcal/include
 
 COMMON_OBJS	= 
 
@@ -22,7 +22,7 @@ PROGRAMS	= jinv
 all	:		$(SUBDIRS) $(PROGRAMS)
 
 jinv:		$(JINV_OBJS) $(COMMON_OBJS)
-			$(CPP) $(CFLAGS) -o $@ $(JINV_OBJS) $(COMMON_OBJS) $(CPPFLAGS) $(LOCALLIBS) $(LIBS)
+			$(CPP) $(CFLAGS) -o $@ $(JINV_OBJS) $(COMMON_OBJS) $(CPPFLAGS) $(LOCALLIBS) $(LIBS) $(OPENMP_FLG)
 
 $(SUBDIRS):	FORCE
 			$(MAKE) -C $@

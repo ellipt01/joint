@@ -24,6 +24,8 @@ static double	dmone = -1.;
 size_t	idamax_ (size_t *n, double *x, size_t *inc);
 void	dscal_ (size_t *n, double *scale, double *x, size_t *inc);
 
+#define bufsiz 512
+
 static char *
 get_toolname (char *str)
 {
@@ -69,7 +71,7 @@ Joint::prepare (int argc, char **argv)
 
 	FILE	*fp = fopen (_fn_settings_, "r");
 	if (!fp) {
-		char	msg[128];
+		char	msg[bufsiz];
 		sprintf (msg, "cannot open setting file %s", _fn_settings_);
 		throw std::runtime_error (msg);
 	}
@@ -345,7 +347,7 @@ Joint::_read_data_ ()
 {
 	FILE	*fp = fopen (_fn_mag_, "r");
 	if (!fp) {
-		char	msg[128];
+		char	msg[bufsiz];
 		sprintf (msg, "ERROR: cannot open file %s", _fn_mag_);
 		throw std::runtime_error (msg);
 	}
@@ -354,7 +356,7 @@ Joint::_read_data_ ()
 
 	fp = fopen (_fn_grv_, "r");
 	if (!fp) {
-		char	msg[128];
+		char	msg[bufsiz];
 		sprintf (msg, "ERROR: cannot open file %s", _fn_grv_);
 		throw std::runtime_error (msg);
 	}
@@ -404,7 +406,7 @@ Joint::_simeq_ ()
 	if (_fn_ter_ != NULL) {
 		FILE	*fp = fopen (_fn_ter_, "r");
 		if (!fp) {
-			char	msg[80];
+			char	msg[bufsiz];
 			sprintf (msg, "cannot open terrain file: %s", _fn_ter_);
 			throw std::runtime_error (msg);
 		}
