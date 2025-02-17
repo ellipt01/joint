@@ -35,7 +35,7 @@ P_{group}(\boldsymbol{\beta},\boldsymbol{\rho})=\sum_{j=1}^M\sqrt{\beta_j^2+\rho
 
 Thus, the problem treated by this code is a mixed $L_2$ norm and group lasso regularized inversion for the magnetic and gravity anomalies.
 
-## 2. compilaton
+## 2. compilation
 To compile this program, edit "make.config" and run make.
 
 make.config specifies some compilation options. You will need to edit and modify this file according to the C and C++ compiler you are using. In particular, you will need to modify the BLAS_LIB and BLAS_CFLAGS flags, which specify the BLAS library and its compiler options according to the BLAS library you are using.
