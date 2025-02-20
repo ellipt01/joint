@@ -29,6 +29,7 @@
 # penalty parameter mu
 5.mu:								1.0
 
-# penalty parameter nu, and lower bounds beta0, rho0
+# penalty parameter nu, and lower bounds for magnetization beta0 and density rho0
+# if nu is set to -1, bound constraint is not applied
 6.nu, beta0, rho0:				-1., 0., 0.
 
