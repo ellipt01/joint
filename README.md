@@ -46,7 +46,7 @@ After running "make", "make install" creates the inversion program "jinv", the $
 
     USAGE: jinv
            -f <magnetic anomaly filename>
-           -g <gravitic anomaly filename>
+           -g <gravity anomaly filename>
            -l <log10(lambda1):log10(lambda2)>
            -a <alpha:log10(lambda)>
     [optional]
@@ -93,8 +93,8 @@ The file specified by the -p option is the settings file for the joint inversion
 
     1. number of grid cells: nx, ny, nz
     2. area of analysis: west-edge, east-edge, south-edge, north-edge, z-top, z-bottom (km)
-    3. altitude of observations: zobs (km)
-    4. inclination and declination of geomagnetic field and magnetization vector: exf_inc, exf_dec, mgz_inc, mgz_dec (deg)
+    3. inclination and declination of geomagnetic field and magnetization vector: exf_inc, exf_dec, mgz_inc, mgz_dec (deg)
+    4. converging tolerance and maximum number of iterations: tol, maxiter
     5. penaltyn parameter: mu
     6. lower bounds: penalty parameter nu, magnetization lower (A/m), density lower (g/cc)
 
@@ -112,6 +112,10 @@ The format of the settings file is
 
 Lines starting with # are considered comments.
 In the case of the above example, the subsurface space $x\in$ [-2., 2. (km)], $y\in$ [-2., 2. (km)], and $z\in$ [-2., 0. (km)] is divided into nx=50, ny=50, and nz=25 grid cells, and assign the magnetization $\beta_j$ and density $\rho_j$ ($j=1,2,\cdots,$ nx $\times$ ny $\times$ nz) to each. nu ($\nu$) is a penalty parameter for the lower-bound constraint; if nu is zero or negative, the lower-bound constraint is not applied.
+
+The $L_2$ norm-group lasso regularized problem is solved by an iterative method called the Alternating Direction Method of Multipliers (ADMM),
+and the convergence torelance is, in the above example, 1.e-5, and maximum number of iteration is 10000.
+
 
 If terrain file is spesicied, zrange of 2., z-top, z-bottom (km) indicates that, the vertical range of the study area is from (surface (topography) + z-bottom) km to (surface + z-top) km.
 In the case of the above example, $z\in$ [surface - 2, surface (km) ].
