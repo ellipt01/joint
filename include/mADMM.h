@@ -5,15 +5,16 @@
 	mADMM: subclass of ADMM, and this class implements the Alternative Direction Method
 	       of Multiplier (ADMM) algorithm
 
-	This class is designed for solving a linear problem with L1-L2 norm regularization:
+	This class is designed for solving a linear problem with L2 norm - group lasso combined
+	regularization:
 	
 	min (1/2) ||b - Z * zeta||^2 + lambda1 * sum_j=0^M ||zeta_gj|| + lambda2 ||zeta||^2/2,
 	
-	where b = [f; g], and Z = [X;Y], and f and g are the observed magnetic and gravity data,
+	where b = [f;g], and Z = [X;Y], f and g are the observed magnetic and gravity data,
 	and K and Y are the magnetic and gravity kernel matrices.
-	zeta = [beta; rho] and beta and rho are magnetization and density model vectors, respectively.
+	zeta = [beta; rho] where beta and rho are magnetization and density model vectors, respectively.
 	The second term of the objective function is group lasso penalty,
-	and M is the number of the grid cells dividing the subsurface model space.
+	where M is the number of the grid cells dividing the subsurface model space.
 
 	Instead to minimize this objective function, mADMM searchs an optimal solution
 	of the following constrained optimization problem:
