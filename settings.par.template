@@ -24,7 +24,7 @@
 3.exf_inc,dec,mgz_inc,dec(deg.):	45., -7., 45., -7.
 
 # tolerance, maxiter
-4.tol, maxiter:					1.e-5, 100000
+4.tol, maxiter:					1.e-3, 10000
 
 # penalty parameter mu
 5.mu:								1.0
