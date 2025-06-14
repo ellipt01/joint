@@ -348,10 +348,11 @@ ADMM::_LUinv_ (size_t m, size_t n, double *C)
 double *
 ADMM::_Cinv_SMW_ (double coef, size_t m, size_t n, double *K)
 {
-	// Ci = (K * K.T + coef * I)^-1
+	// Ci = (K * K.T / coef + I)^-1
 	double	*Ci = new double [m * m];
-	dgemm_ (&notrans, &trans, &m, &m, &n, &done, K, &m, K, &m, &dzero, Ci, &m);
-	for (size_t i = 0; i < m; i++) Ci[i + i * m] += coef; // Ci = K * K.T + coef * I
+	double	alpha = 1. / coef;
+	dgemm_ (&notrans, &trans, &m, &m, &n, &alpha, K, &m, K, &m, &dzero, Ci, &m);
+	for (size_t i = 0; i < m; i++) Ci[i + i * m] += 1.; // Ci = K * K.T / coef + I
 #ifdef USE_LUINV
 	_LUinv_ (Ci);
 #else
@@ -361,11 +362,14 @@ ADMM::_Cinv_SMW_ (double coef, size_t m, size_t n, double *K)
 }
 
 // compute zeta using SMW formula
-// via compute zeta = (I - K.T * (K * K.T + coef * I)^-1 * K) * b / coef
+// via compute zeta = [ I - (1 / coef) * K.T * Ci * K ] * b / coef,
+// where Ci = (K * K.T / coef + I)^-1 
 double *
 ADMM::_eval_zeta_SMW_ (double coef, size_t m, size_t n, double *K, double *Ci, double *b)
 {
-	double *zeta = new double [n];
+	if (coef <= 0.) throw std::runtime_error ("coef must be > 0.");
+
+	double	*zeta = new double [n];
 
 	// y1 = K * b
 	double	*y1 = new double [m];
@@ -377,16 +381,17 @@ ADMM::_eval_zeta_SMW_ (double coef, size_t m, size_t n, double *K, double *Ci, d
 	dsymv_ (&uplo, &m, &done, Ci, &m, y1, &ione, &dzero, y2, &ione);
 	delete [] y1;
 
-	// zeta = - K.T * Ci * K * b
-	dgemv_ (&trans, &m, &n, &dmone, K, &m, y2, &ione, &dzero, zeta, &ione);
+	// zeta = - (1. / coef) * K.T * Ci * K * b
+	double	scale = - 1. / coef;
+	dgemv_ (&trans, &m, &n, &scale, K, &m, y2, &ione, &dzero, zeta, &ione);
 	delete [] y2;
 
-	// zeta = b - K.T * Ci * K * b
+	// zeta = b - (1. / coef) * K.T * Ci * K * b
 	daxpy_ (&n, &done, b, &ione, zeta, &ione);
 
-	// zeta = (b - K.T * Ci * K * b) / coef
-	if (fabs (coef - 1.) > DBL_EPSILON) {
-		double	scale = 1. / coef;
+	// zeta = [ b - (1. / coef) * K.T * Ci * K * b] / coef
+	if (coef > 1.) {
+		scale = 1. / coef;
 		dscal_ (&n, &scale, zeta, &ione);
 	}
 	return zeta;
