@@ -62,22 +62,23 @@ make install
 After installation, the executable `jinv` will be available in the `./bin` directory.
 
 ### Command-Line Options
+```
 USAGE: jinv [options]
 
 Required:
--f <path>    Path to the magnetic anomaly data file.
--g <path>    Path to the gravity anomaly data file.
--l l1:l2   Regularization parameters as log10(λ₁) and log10(λ₂).
-(e.g., -l -3:-2)
--a <a:l>     Regularization parameters as α and log10(λ).
-(e.g., -a 0.5:-3)
-
+  -f <path>    Path to the magnetic anomaly data file.
+  -g <path>    Path to the gravity anomaly data file.
+  -l <l1:l2>   Regularization parameters as log10(λ₁) and log10(λ₂).
+               (e.g., -l -3:-2)
+  -a <a:l>     Regularization parameters as α and log10(λ).
+               (e.g., -a 0.5:-3)
+<br>
 Optional:
--t <path>    Path to the gridded terrain elevation file.
--s <path>    Path to the settings file (default: settings.par).
--v           Enable verbose mode for detailed progress output.
--h           Show this help message.
-
+  -t <path>    Path to the gridded terrain elevation file.
+  -s <path>    Path to the settings file (default: settings.par).
+  -v           Enable verbose mode for detailed progress output.
+  -h           Show this help message.
+```
 
 ### Regularization Parameters
 
@@ -119,6 +120,16 @@ The program generates the following output files in the working directory:
 ### Settings File (`-s`)
 
 The settings file configures the model space, geophysical parameters, and solver settings. Lines starting with `#` are ignored as comments.
+
+```
+# example settings file
+1. nx, ny, nz:		50, 50, 25
+2. x, y, zrange (km):	-2., 2., -2., 2., 0., -2.
+3. exf_inc, exf_dec, mgz_inc, mgz_dec(deg.):	45., -7., 45., -7.
+4. tol, maxiter:	1.e-5, 100000
+5. mu:			1.0
+6. nu, beta0, rho0:	1.0, 0., 0.
+```
 
 | ID | Description | Values | Example |
 | :--- | :--- | :--- | :--- |
