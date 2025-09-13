@@ -52,6 +52,7 @@ ADMM::~ADMM ()
 	delete [] w_;
 	delete [] zeta_;
 	delete [] zeta_prev_;
+	delete [] lower_;
 	delete [] s_;
 	delete [] u_;
 	delete [] t_;

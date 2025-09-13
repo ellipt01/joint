@@ -43,11 +43,13 @@ get_toolname (char *str)
 // Destructor
 Joint::~Joint ()
 {
-
 	delete [] fn_ter_;
 	delete [] zsurf_;
 	if (magdata_) data_array_free (magdata_);
 	if (grvdata_) data_array_free (grvdata_);
+	delete magker_;
+	delete grvker_;
+	delete admm_;
 }
 
 void

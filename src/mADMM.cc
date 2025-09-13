@@ -43,6 +43,7 @@ mADMM::~mADMM ()
 	delete [] rho_;
 	delete [] beta_prev_;
 	delete [] rho_prev_;
+	delete [] lower_;
 	delete [] cx_;
 	delete [] cy_;
 	delete [] bx_;

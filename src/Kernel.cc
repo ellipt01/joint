@@ -12,7 +12,6 @@ Kernel::~Kernel ()
 	delete [] yy_;
 	delete [] zz_;
 	if (grd_) grid_free (grd_);
-	if (data_) data_array_free (data_);
 	delete [] K_;
 }
 
