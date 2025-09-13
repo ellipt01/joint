@@ -55,3 +55,87 @@ make
 
 # 3. Install the executable to the ./bin directory
 make install
+```
+
+
+## 3. Usage
+After installation, the executable `jinv` will be available in the `./bin` directory.
+
+### Command-Line Options
+USAGE: jinv [options]
+
+Required:
+-f <path>    Path to the magnetic anomaly data file.
+-g <path>    Path to the gravity anomaly data file.
+-l l1:l2   Regularization parameters as log10(λ₁) and log10(λ₂).
+(e.g., -l -3:-2)
+-a <a:l>     Regularization parameters as α and log10(λ).
+(e.g., -a 0.5:-3)
+
+Optional:
+-t <path>    Path to the gridded terrain elevation file.
+-s <path>    Path to the settings file (default: settings.par).
+-v           Enable verbose mode for detailed progress output.
+-h           Show this help message.
+
+
+### Regularization Parameters
+
+The regularization parameters $\lambda_1$ and $\lambda_2$ can be set in one of two mutually exclusive ways:
+
+1.  **Directly with the `-l` option:**
+    * `-l <log10(λ₁):log10(λ₂)>`
+
+2.  **Using a mixing parameter `α` with the `-a` option:**
+    * `-a <α:log10(λ)>`
+    * This sets $\lambda_1 = \alpha \cdot \lambda$ and $\lambda_2 = (1-\alpha) \cdot \lambda$.
+
+**Note:** The `-l` and `-a` options cannot be used at the same time.
+
+---
+### Input File Formats
+
+#### Anomaly Data (`-f`, `-g`)
+The anomaly data files must be **tab-separated** text files with four columns:
+> `x_obs(km)   y_obs(km)   z_obs(km)   anomaly(A/m or mgal)`
+
+#### Terrain Data (`-t`)
+The optional terrain file defines the surface topography as a grid of elevation points. The format is a text file with three **space or tab-separated** columns:
+> `x(km)   y(km)   z_elevation(km)`
+
+If no terrain file is provided, the surface is assumed to be a flat plane at z=0. The grid layout (x and y coordinates) of the terrain file must match the subsurface grid defined in the settings file.
+
+---
+### Output Files
+
+The program generates the following output files in the working directory:
+
+* `model.data`: The final inverted model.
+    > Format: `x(km)   y(km)   z(km)   magnetization(A/m)   density(g/cc)`
+* `recover_mag.data`: The recovered magnetic anomaly data calculated from the final model.
+* `recover_grv.data`: The recovered gravity anomaly data calculated from the final model.
+
+---
+### Settings File (`-s`)
+
+The settings file configures the model space, geophysical parameters, and solver settings. Lines starting with `#` are ignored as comments.
+
+| ID | Description | Values | Example |
+| :--- | :--- | :--- | :--- |
+| **1** | Number of grid cells | `nx, ny, nz` | `1. nx, ny, nz: 50, 50, 25` |
+| **2** | Model space area (km) | `x_min, x_max, y_min, y_max, z_top, z_bottom` | `2. x, y, zrange (km): -2., 2., -2., 2., 0., -2.` |
+| **3** | Field/Mag directions (deg) | `exf_inc, exf_dec, mgz_inc, mgz_dec` | `3. ...inc, dec(deg.): 45., -7., 45., -7.` |
+| **4** | Solver settings | `tolerance, max_iterations` | `4. tol, maxiter: 1.e-5, 100000` |
+| **5** | ADMM penalty parameter | `mu (μ)` | `5. mu: 1.0` |
+| **6** | Lower bound constraints | `nu (ν), beta_min, rho_min` | `6. nu, beta0, rho0: 1.0, 0., 0.` |
+
+#### Notes on Settings:
+
+* **Model Space (ID 2):**
+    * If no terrain file is used, `z_top` and `z_bottom` define the absolute vertical range. In the example, the space is $z \in [-2, 0]$ km.
+    * If a terrain file *is* specified, `z_top` and `z_bottom` are interpreted as offsets **relative to the surface elevation**. In the example, the space would be from `surface - 2km` to `surface + 0km`.
+* **Lower Bounds (ID 6):**
+    * `nu` ($\nu$) is the ADMM penalty parameter for the lower-bound constraint. If `nu` is zero or negative, the constraint is disabled.
+* **Solver (ID 4):**
+    * The ADMM solver will stop when the residual falls below the `tolerance` or when 
+
