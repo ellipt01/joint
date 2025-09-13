@@ -16,6 +16,8 @@ In this code, we model the subsurface by dividing it into a grid of small cells.
 ---
 ### Objective Function
 
+We define a Cartesian coordinate system where the $x$-axis is **positive to the East**, the $y$-axis is **positive to the North**, and the $z$-axis is **positive upward**.
+
 Let $\boldsymbol{\beta}$ be the subsurface magnetization distribution, $\boldsymbol{\rho}$ be the density distribution, and $\mathbf{f}$ and $\mathbf{g}$ be the observed magnetic and gravity anomalies, respectively. The objective function to be minimized is:
 
 $$
@@ -134,7 +136,7 @@ The settings file configures the model space, geophysical parameters, and solver
 | ID | Description | Values | Example |
 | :--- | :--- | :--- | :--- |
 | **1** | Number of grid cells | `nx, ny, nz` | `1. nx, ny, nz: 50, 50, 25` |
-| **2** | Model space area (km) | `x_min, x_max, y_min, y_max, z_top, z_bottom` | `2. x, y, zrange (km): -2., 2., -2., 2., 0., -2.` |
+| **2** | Model space area (km) | `x_min(west), x_max(east),`<br>`y_min(south), y_max(north),`<br> `z_top, z_bottom` | `2. x, y, zrange (km): -2., 2., -2., 2., 0., -2.` |
 | **3** | Field/Mag directions (deg) | `exf_inc, exf_dec, mgz_inc, mgz_dec` | `3. ...inc, dec(deg.): 45., -7., 45., -7.` |
 | **4** | Solver settings | `tolerance, max_iterations` | `4. tol, maxiter: 1.e-5, 100000` |
 | **5** | ADMM penalty parameter | `mu (μ)` | `5. mu: 1.0` |
