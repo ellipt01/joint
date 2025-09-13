@@ -49,8 +49,6 @@ ADMM::ADMM (double lambda1, double lambda2, double mu)
 ADMM::~ADMM ()
 {
 	delete [] lower_;
-	delete [] f_;
-	delete [] X_;
 	delete [] w_;
 	delete [] zeta_;
 	delete [] zeta_prev_;
