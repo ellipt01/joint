@@ -37,10 +37,6 @@ mADMM::mADMM (double lambda1, double lambda2, double mu)
 // Destructor
 mADMM::~mADMM ()
 {
-	delete [] f_;
-	delete [] g_;
-	delete [] X_;
-	delete [] Y_;
 	delete [] wx_;
 	delete [] wy_;
 	delete [] beta_;
