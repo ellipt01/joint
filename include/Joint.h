@@ -1,196 +1,185 @@
-#ifndef _JOINT_H_
-#define _JOINT_H_
-
-typedef enum {
-	DATA_TYPE_MAGNETIC = 0,
-	DATA_TYPE_GRAVITY = 1,
-	DATA_TYPE_NONE = -1
-} data_type;
+#ifndef JOINT_H_
+#define JOINT_H_
 
 /***
-	Joint: class of magnetic and gravity joint inversion
+	@class Joint
+	@brief Performs a joint inversion of magnetic and gravity data.
 
-	This class provides APIs for performing magnetic and gravity inversion
-	based on L2 norm and group lasso regularization.
+	This class provides a high-level interface for performing joint inversion
+	using a combination of L2-norm and group-lasso regularization.
 
-	*** flow of the processing ***
-	call the following methods:
-
-	prepare (): processing inline options and reading settings file.
-	start (): run joint inversion.
-
-	The following methods exports calculation results:
-	export_results (): output derived magnetization and density models,
-					   and recoverd magnetic and gravity anomalies.
+	@section workflow Typical Workflow
+	1. prepare():   Parses command-line arguments and reads a settings file.
+	2. start():     Executes the joint inversion algorithm.
+	3. export_results(): Exports the resulting models and recovered data.
 ***/
 
 class Joint
 {
-	char		*_toolname_;
+	char		*toolname_;
 
-	// settings file name
-	char		_fn_settings_[256];
-	// terrain file name
-	char		*_fn_ter_;
+	// Path to the settings file
+	char		fn_settings_[256];
+	// Path to the terrain data file
+	char		*fn_ter_;
 
-	// external field inclination and declination
-	double		_exf_inc_;
-	double		_exf_dec_;
+	// External magnetic field direction (inclination, declination)
+	double	exf_inc_;
+	double	exf_dec_;
 
-	// magnetization vector inclination and declination
-	double		_mgz_inc_;
-	double		_mgz_dec_;
+	// Magnetization vector direction (inclination, declination)
+	double	mgz_inc_;
+	double	mgz_dec_;
 
-	// input file names
-	char		_fn_mag_[256];
-	char		_fn_grv_[256];
+	// Input data file paths
+	char		fn_mag_[256];
+	char		fn_grv_[256];
 
-	// mixing ratio of L1-L2 norm penalty
-	double		_alpha_;
-	// regularization parameter
-	double		_lambda_;
+	// Regularization parameter 
+	double	lambda_;
+	// Mixing ratio of L1-L2 norm penalty
+	double	alpha_;
 
-	// regularization parameters for L1 and L2 norm
-	double		_lambda1_;
-	double		_lambda2_;
+	// Regularization parameters for L1 and L2 norm penalties
+	double	lambda1_;
+	double	lambda2_;
 
-	// number of subsurface grid
-	size_t		_nx_;
-	size_t		_ny_;
-	size_t		_nz_;
+	// Number of grid cells in each dimension
+	size_t	nx_;
+	size_t	ny_;
+	size_t	nz_;
 
-	// number of individual data
-	size_t		_size1_mag_;	// = dim(f)
-	size_t		_size1_grv_;	// = dim(g)
-	// number of subsurface grid cells
-	size_t		_size2_;	// = size(X, 2) = size(Y, 2)
+	// Number of magnetic/gravity data points
+	size_t	size1_mag_;	// = dim(f)
+	size_t	size1_grv_;	// = dim(g)
+	// Total number of model parameters (grid cells)
+	size_t	size2_;	// = size(X, 2) = size(Y, 2)
 
-	// first dimension of joint equation (= size1_mag + size1_grv)
-	size_t		_m_;
-	// second dimension of joint equation (= 2 * size2)
-	size_t		_n_;
+	// Total number of data points (rows in the system matrix)
+	size_t	m_;
+	// Total number of variables (2 * model parameters)
+	size_t	n_;
 
-	// range of the model space
-	double		_xrange_[2]; // Eastward positive
-	double		_yrange_[2]; // Northward positive
-	double		_zrange_[2]; // Upward positive
-	double		*_zsurf_; // store terrain data, read from _fn_ter_
+	// Physical boundaries of the model space
+	double	xrange_[2]; // Eastward positive
+	double	yrange_[2]; // Northward positive
+	double	zrange_[2]; // Upward positive
+	double	*zsurf_; // store terrain data, read from fn_ter_
 
-	// penalty parameter for s = zeta
-	double		_mu_;
-	// penalty parameter for lower bound constraint
-	double		_nu_;
-	double		_beta_lower_; // magnetization lower bound
-	double		_rho_lower_; // density lower bound
-	double		*_lower_; // store the above bounds
+	// ADMM penalty parameter for the main consensus constraint (s = zeta)
+	double	mu_;
+	// ADMM penalty parameter for the lower bound constraint
+	double	nu_;
+	double	beta_lower_; // Lower bound for magnetization
+	double	rho_lower_;  // Lower bound for density
+	double	*lower_; // Combined lower bounds for the solver
 
-	// magnetic and gravity observed data
-	data_array	*_magdata_;
-	data_array	*_grvdata_;
+	// Magnetic and gravity observed data
+	data_array	*magdata_;
+	data_array	*grvdata_;
 
-	// magnetic data vector and kernel matrix
-	double		*_f_;
-	double		*_K_;
+	// Magnetic data vector and kernel matrix
+	double	*f_;
+	double	*K_;
 
-	// gravity data vector and kernel matrix
-	double		*_g_;
-	double		*_G_;
+	// Gravity data vector and kernel matrix
+	double	*g_;
+	double	*G_;
 
-	// scale for magnetic and gravity data
-	double		_scale_; // = |g|_{infinity} / |f|_{infinity}
+	// Scaling factor to balance magnetic and gravity data contributions
+	double	scale_; // = |g|_infinity / |f|_infinity
 
-	// kernel matrix calculator
-	MagKernel	*_magker_;
-	GravKernel	*_grvker_;
+	// Kernel matrix generator objects
+	MagKernel	*magker_;
+	GravKernel	*grvker_;
 
-	// ADMM object
-	mADMM		*_admm_;
+	// The ADMM solver instance
+	mADMM		*admm_;
 
-	// tolerance and number of max iteration
-	double		_tolerance_;
-	size_t		_maxiter_;
+	// Convergence tolerance and maximum iterations for the solver
+	double	tolerance_;
+	size_t	maxiter_;
 
-	// counter for number of iterations
-	size_t		_niter_;
+	// Actual number of iterations performed
+	size_t	niter_;
 
-	bool		_export_matrix_;
-	bool		_verbos_;
+	bool		export_matrix_;
+	bool		verbos_;
 
 public:
-	Joint () { __init__ (); }
+	Joint () { initialize_ (); }
+	~Joint ();
 
-	// get instances
-	double		get_alpha () { return _alpha_; }
-	double		get_lambda () { return _lambda_; }
+	// Accessor methods for parameters
+	double	get_alpha () const { return alpha_; }
+	double	get_lambda () const { return lambda_; }
 
-	double		get_lambda1 () { return _lambda1_; }
-	double		get_lambda2 () { return _lambda2_; }
+	double	get_lambda1 () const { return lambda1_; }
+	double	get_lambda2 () const { return lambda2_; }
 
-	double		get_tolerance () { return _tolerance_; }
-	size_t		get_maxiter () { return _maxiter_; }
+	double	get_tolerance () const { return tolerance_; }
+	size_t	get_max_iterations () const { return maxiter_; }
 
-	// display usage
-	void		usage ();
+	// Displays program usage instructions.
+	void		print_usage ();
 
-	// processing inline options and reading settings file
+	// Parses command-line arguments and reads the settings file to configure the inversion.
 	void		prepare (int argc, char **argv);
 
-	// performs inversion
-	size_t		start (bool normalize);
-	size_t		restart ();
+	// Executes the joint inversion algorithm.
+	size_t	start (bool normalize);
+	size_t	restart ();
 
-	// return max of primal and dual residuals
-	double		residual ();
+	// Returns the final residual of the ADMM solver.
+	double	get_residual ();
 
-	// recover input anomalies using derived model
-	void		recover (double *f, double *g);
+	// Recovers the data anomalies using the computed model.
+	void		recover_data (double *f, double *g);
 
-	// gtet model instances derived by the inversion
-	double		*get_beta (); // = zeta[:m]
-	double		*get_rho ();  // = zeta[m:]
+	// Returns the resulting model vectors from the inversion.
+	double	*get_magnetization_model (); // = zeta[:m]
+	double	*get_gravity_model ();  // = zeta[m:]
 
-	// displays the settings specified
-	// in the inline options and the settings file.
-	void		fwrite_inline (FILE *stream);
-	void		fwrite_settings (FILE *stream);
+	// Prints the settings parsed from command-line options and the settings file.
+	void		print_command_line_options (FILE *stream) const;
+	void		print_settings (FILE *stream) const;
 
-	// export calculation results
+	// Exports all primary results (models, recovered data) to output files.
 	void		export_results ();
 
 protected:
-	// read inline options
-	void		_read_inline_ (int argc, char **argv);
-	// read settings file
-	void		_fread_settings_ (FILE *stream);
+	// Parses command-line arguments.
+	void		parse_command_line (int argc, char **argv);
+	// Reads parameters from the settings file.
+	void		read_settings_file (FILE *stream);
 
-	// read data files
-	void		_read_data_ ();
-	// register lower bound constraint
-	void		_set_lower_bounds_ ();
-	// register terrai data
-	void		_set_surface_ (size_t c, double *zsurf);
+	// Loads magnetic and gravity data from files.
+	void		load_data_files ();
+	// Configures the lower bound constraints for the solver.
+	void		setup_lower_bounds ();
+	// Loads and applies the surface topography data.
+	void		load_surface_topography (size_t c, double *zsurf);
 
-	// set simultaneous equation for joint inversion
-	void		_simeq_ ();
+	// Sets up the matrices and vectors for the joint inversion problem.
+	void		setup_problem ();
 
-	// set magnetic data, inclination, and declination
-	void		_set_mag_ (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec, data_array *data);
-	// set gravity data
-	void		_set_grv_ (data_array *data);
+	// Configures the magnetic kernel and data.
+	void		setup_magnetic_problem (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec, data_array *data);
+	// Configures the gravity kernel and data.
+	void		setup_gravity_problem (data_array *data);
 
-	// write derived model into a file
-	void		_fwrite_model_ (FILE *fp);
-	// export depth weightings
-	void		_export_weights_ ();
+	// Writes a model vectors to a file stream.
+	void		write_model_to_file (FILE *fp);
+	// Exports depth weighting function to a file.
+	void		export_depth_weights ();
+	// Reads terrain data from a file stream.
+	double	*read_terrain_file (FILE *fp, const size_t c);
 	
 private:
-	// initialize
-	void		__init__ ();
-	// count number of data
-	size_t		__count__ (FILE *fp);
-	// read terrain file
-	double		*__read_terrain__ (FILE *fp, const size_t c);
-
+	// Initializes all member variables to default values.
+	void		initialize_ ();
+	// Counts the number of lines in a file to determine data size.
+	size_t	count_lines_in_file_ (FILE *fp);
 };
 
 #endif

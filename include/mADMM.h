@@ -1,148 +1,130 @@
 #ifndef _MADMM_H_
 #define _MADMM_H_
 
-/***
-	mADMM: subclass of ADMM, and this class implements the Alternative Direction Method
-	       of Multiplier (ADMM) algorithm
-
-	This class is designed for solving a linear problem with L2 norm - group lasso combined
-	regularization:
-	
-	min (1/2) ||b - Z * zeta||^2 + lambda1 * sum_j=0^M ||zeta_gj|| + lambda2 ||zeta||^2/2,
-	
-	where b = [f;g], and Z = [X;Y], f and g are the observed magnetic and gravity data,
-	and K and Y are the magnetic and gravity kernel matrices.
-	zeta = [beta; rho] where beta and rho are magnetization and density model vectors, respectively.
-	The second term of the objective function is group lasso penalty,
-	where M is the number of the grid cells dividing the subsurface model space.
-
-	Instead to minimize this objective function, mADMM searchs an optimal solution
-	of the following constrained optimization problem:
-
-	min (1/2) ||b - Z * zeta||^2 + lambda1 * sum_j=0^M ||s_gj|| + lambda2 ||s||^2/2 s.t. s = zeta
-	
-	where s is a slack vector.
-	The augmented Lagrange function of this problem is
-	
-	L = (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 ||s||^2/2
-		+ (mu / 2) * ||s - zeta + u||^2,
-
-	where u is the Lagrange dual vector, and mu is a penalty parameter.
-	
-	mADMM searhcs a model zeta which minimizes this function by the following
-	coordinate descent method, e.g. repeat the following cycle until converged:
-	
-	1. update zeta: zeta^{k+1} = (X.T * X + mu * I)^-1 * {X.T * f + mu * (s^k - u^k)}
-	2. update s: s^{k+1}_gj = C * max (0, 1 + lambda1 / (mu * || q^k_gj ||)) * q^k_gj,
-	   where q^k = zeta^{k+1} - v^k, and C = mu / (mu + lambda2).
-	3. update u by the multiplyer method: u^{k+1} = u^k + mu * (s^{k+1} - zeta^{l+1}),
-
-	where a^k is the vector obtained by the k-th iteration.
-	the steps 1, 2, and 3 of above are implemented by
-	_update_b_ () and _update_zeta (),
-	_update_s_ (), and _update_u_ ().
-
-	This class allows to apply lower bound constraint
-	
-	zeta_min <= zeta_i
-	
-	This is implemented by add the following cycle to the ADMM iteration:
-	4. update t: t_i^{k+1} = max(max (zeta_min, zeta_i^k - v_i^k)
-	5. update v: v^{k+1} = v^k + nu * (t^{k+1} - zeta^{k+1})
-
-	where t is a slack vector, v is a Lagrange vector, and nu is a penalty parameter
-	for the lower bound constraint.
-	step 4 and 5 are implemented by _update_t_ () and _update_v_ (),
-	and one cycle of the update is implemented by _one_cycle_ ().
-	
-	The steps 1-6 are repeated until solution converged, and this process is
-	implemented by start ().
-
-***/
+/*
+ * mADMM: A subclass of ADMM that extends the algorithm for joint magnetic and gravity data inversion.
+ *
+ * This class is designed to solve a linear problem with an L2-norm and Group Lasso combined regularization:
+ *
+ * min (1/2) ||b - Z * zeta||^2 + lambda1 * sum_j=0^M ||zeta_gj|| + lambda2 ||zeta||^2/2,
+ *
+ * where b = [f;g] (magnetic and gravity data), and Z = [X;Y] (magnetic and gravity kernel matrices).
+ * zeta = [beta; rho] where beta is the magnetization and rho is the density model vector.
+ * The second term is a Group Lasso penalty, with M being the number of grid cells.
+ *
+ * The mADMM algorithm solves the equivalent constrained optimization problem:
+ *
+ * min (1/2) ||b - Z * zeta||^2 + lambda1 * sum_j=0^M ||s_gj|| + lambda2 ||s||^2/2  s.t. s = zeta
+ *
+ * The augmented Lagrangian function for this problem is:
+ *
+ * L = (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 ||s||^2/2 + (mu / 2) * ||s - zeta + u||^2,
+ *
+ * where u is the Lagrange dual vector and mu is a penalty parameter.
+ *
+ * mADMM iteratively minimizes this function by the following coordinate descent steps until convergence:
+ *
+ * 1. Update zeta: zeta^{k+1} = (X.T * X + mu * I)^-1 * {X.T * f + mu * (s^k - u^k)}
+ * 2. Update s: s^{k+1}_gj = C * max(0, 1 + lambda1 / (mu * || q^k_gj ||)) * q^k_gj,
+ * where q^k = zeta^{k+1} - u^k, and C = mu / (mu + lambda2).
+ * 3. Update u (dual variable): u^{k+1} = u^k + mu * (s^{k+1} - zeta^{l+1}),
+ *
+ * The steps above are implemented by the `update_b()`, `update_zeta()`, `update_s()`, and `update_u()` functions.
+ *
+ * This class also allows applying lower bound constraints (zeta_min <= zeta_i)
+ * by adding the following steps to the iteration cycle:
+ * 4. Update t: t_i^{k+1} = max(zeta_min, zeta_i^k - v_i^k)
+ * 5. Update v: v^{k+1} = v^k + nu * (t^{k+1} - zeta^{k+1})
+ *
+ * where t is a slack vector, v is a Lagrange dual vector, and nu is a penalty parameter for the lower bound constraint.
+ * Steps 4 and 5 are implemented by `update_t()` and `update_v()`.
+ * A single cycle of updates is performed by `iterate()`.
+ *
+ * The entire process is handled by the `solve()` function.
+ */
 class mADMM : public ADMM {
 
-	size_t	_size1_mag_;	// = dim(f)
-	size_t	_size1_grv_;	// = dim(g)
+	size_t	size1_mag_ = 0;	// Number of magnetic data points (rows of f)
+	size_t	size1_grv_ = 0;	// Number of gravity data points (rows of g)
 
-	size_t	_m_;		// m = dim(f) + dim(g)
-	size_t	_n_;		// n = size(X, 2) + size(Y, 2) = 2 * size(X, 2) (size(X, 2) = size(Y, 2))
+	size_t	m_ = 0;		// Total number of data points (m = dim(f) + dim(g))
+	size_t	n_= 0;		// Number of model variables (n = 2 * number of grid cells)
 
 	// input data
-	double	*_f_;		// magnetic anomaly
-	double	*_g_;		// gravity anomaly
+	double	*f_ = NULL;		// Magnetic anomaly data vector
+	double	*g_ = NULL;		// Gravity anomaly data vector
 
 	// transform matrix
-	double	*_X_;		// magnetic kernel matrix
-	double	*_Y_;		// gravity kernel matrix
+	double	*X_ = NULL;		// Magnetic kernel matrix
+	double	*Y_ = NULL;		// Gravity kernel matrix
 
 	// weighting
-	double	*_wx_;
-	double	*_wy_;
+	double	*wx_ = NULL;	// Weighting vector for the magnetic kernel matrix
+	double	*wy_ = NULL;	// Weighting vector for the gravity kernel matrix
 
-	double	*_beta_;	// magnetization
-	double	*_rho_;		// density
+	double	*beta_ = NULL;	// Magnetization model vector
+	double	*rho_ = NULL;	// Density model vector
 
-	double	*_beta_prev_;	// backup magnetization
-	double	*_rho_prev_;	// backup density
+	double	*beta_prev_ = NULL;	// Backup of magnetization from previous iteration
+	double	*rho_prev_ = NULL;	// Backup of density from previous iteration
 
-	double	*_cx_;		// = X.T * f
-	double	*_cy_;		// = Y.T * g
-	double	*_bx_;		// = cx + mu * (s + u)[1:size2] + nu * (t + v)[1:size2]
-	double	*_by_;		// = cy + mu * (s + u)[size2:2*size2] + nu * (t + v)[size2:2*size2]
-	double	*_CXi_;		// = (X * X.T + (mu + nu) * I)^-1
-	double	*_CYi_;		// = (Y * Y.T + (mu + nu) * I)^-1
+	double	*cx_ = NULL;	// Pre-computed vector: X.T * f
+	double	*cy_ = NULL;	// Pre-computed vector: Y.T * g
+	double	*bx_ = NULL;	// Intermediate vector for beta update: cx + mu * (s + u)[1:M] + nu * (t + v)[1:M]
+	double	*by_ = NULL;	// Intermediate vector for rho update: cy + mu * (s + u)[M:2M] + nu * (t + v)[M:2M]
+	double	*CXi_ = NULL;	// Pre-computed inverse matrix: inv(X * X.T + (mu + nu) * I)
+	double	*CYi_ = NULL;	// Pre-computed inverse matrix: inv(Y * Y.T + (mu + nu) * I)
 
-	double	_residual_;
+	double	residual_ = 0.;
 
 public:
-	mADMM () { __init__ (); }
+	mADMM () { }
 	mADMM (double lambda1, double lambda2, double mu);
+	~mADMM ();
 
-	double	*get_beta ();
-	double	*get_rho ();
+	double	*get_magnetization (); // Get the magnetization model vector
+	double	*get_density (); // Get the density model vector
 
-	double	*get_wx () { return _wx_; } // get depth weighting of magnetic kernel matrix
-	double	*get_wy () { return _wy_; } //                        gravity kernel matrix
+	double	*get_magnetic_depth_weights () { return wx_; } // Returns the depth weighting vector for the magnetic kernel
+	double	*get_gravity_depth_weights () { return wy_; } // Returns the depth weighting vector for the gravity kernel
 
-	void	simeq (size_t size1_mag, size_t size1_grv, size_t size2,
-				   double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower);
+	void		setup_problem (size_t size1_mag, size_t size1_grv, size_t size2,
+			 		  double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower);
 
-	// start ADMM iteration until model converged
-	size_t	start (const double tol, const size_t maxiter) { return start (tol, maxiter, false); };
-	size_t	start (const double tol, const size_t maxiter, bool verbos);
+	// Solves the problem by running ADMM iterations until convergence.
+	size_t	solve (const double tol, const size_t maxiter, bool verbos = false);
 
-	double	residual () { return _residual_; }
+	double	get_residual () { return residual_; }
 
-	void	recover (double *f, double *g);
+	void		recover_data (double *f, double *g);
 
 protected:
-	void	_initialize_ (); // initialize zeta, t, and v
+	void		initialize_variables (); // Initializes all ADMM variables to zero.
 
-	// ADMM iteration
-	void	_update_bx_ (); // update bx = X.T * f + mu * (s + u)[1:M] + nu * (t + v)[1:M]
-	void	_update_by_ (); // update by = Y.T * g + mu * (s + u)[M:2M] + nu * (t + v)[M:2M]
-	void	_update_b_ ();  // update bx and by
-	void	_update_zeta_ (); // update zeta = [beta; rho]
-	void	_update_s_ (); // update slack vector
-	void	_update_t_ (); // update slack vector for bound constraint
-	void	_update_u_ (); // update Lagrange dual
-	void	_update_v_ (); // update Lagrange dual for bound constraint
+	// ADMM iteration steps
+	void		update_bx (); // Updates the intermediate vector `bx` for the beta update.
+	void		update_by (); // Updates the intermediate vector `by` for the rho update.
+	void		update_b ();  // Calls update_bx() and update_by().
+	void		update_zeta (); // Updates the combined model vector `zeta = [beta; rho]`.
+	void		update_s (); // Updates the slack vector for the regularization penalty.
+	void		update_t (); // Updates the slack vector for the lower bound constraint.
+	void		update_u (); // Updates the Lagrange dual variable for the regularization penalty.
+	void		update_v (); // Updates the Lagrange dual variable for the lower bound constraint.
 
-	void	_one_cycle_ ();	// perform ADMM iteration at once: updates b, zeta, s, t, t and v
+	void		iterate ();	// Performs a single full cycle of ADMM updates.
 
-	double	_eval_residuals_ (); // evaluate maximum of primal and dual residuals
+	double	eval_residuals (); // Evaluates the maximum of primal and dual residuals for convergence check.
 
-	void	_calc_Ci_ ();   // compute CXi = (X * X.T + coef * I)^-1 and CYi = (Y * Y.T + coef * I)^-1
-	// compute beta = (I - X.T * CXi * X) * bx / coef
-	double	*_eval_beta_SMW_ (double coef, size_t m, size_t n, double *X, double *CXi, double *bx);
-	// compute rho = (I - Y.T * CYi * Y) * by / coef
-	double	*_eval_rho_SMW_ (double coef, size_t m, size_t n, double *Y, double *CYi, double *by);
+	void		compute_Ci ();  // Computes the intermediate matrices CXi and CYi.
+	// Computes the beta update step using the Sherman-Morrison-Woodbury formula.
+	double	*eval_beta_using_SMW (double coef, size_t m, size_t n, double *X, double *CXi, double *bx);
+	// Computes the rho update step using the Sherman-Morrison-Woodbury formula.
+	double	*eval_rho_using_SMW (double coef, size_t m, size_t n, double *Y, double *CYi, double *by);
 
-	// soft threshold for L2 + group Lasso
-	double	_soft_threshold_ (double gamma, double lambda);
+	// Applies the soft-thresholding operator for the L2 + Group Lasso penalty.
+	double	soft_threshold (double gamma, double lambda);
 
 private:
-	void	__init__ ();
 };
 
 #endif

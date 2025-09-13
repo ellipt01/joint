@@ -1,121 +1,110 @@
 #include <iostream>
 
 #include "mgcal.h"
-#include "Kernel.h"
 #include "gravity.h"
+#include "Kernel.h"
 
 /*** public methods ***/
-// set range and creates grid for model space
+// Destructor
+Kernel::~Kernel ()
+{
+	delete [] xx_;
+	delete [] yy_;
+	delete [] zz_;
+	if (grd_) grid_free (grd_);
+	if (data_) data_array_free (data_);
+	delete [] K_;
+}
+
+// Sets the model space dimensions and creates the grid.
 void
 Kernel::set_range (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz, const double ll)
 {
-	_nx_ = nx;
-	_ny_ = ny;
-	_nz_ = nz;
-	_n_ = _nx_ * _ny_ * _nz_;
-	_grd_ = grid_new (_nx_, _ny_, _nz_, xx, yy, zz);
-	if (ll > 0.) grid_stretch_at_edge (_grd_, ll);
+	nx_ = nx;
+	ny_ = ny;
+	nz_ = nz;
+	n_ = nx_ * ny_ * nz_;
+	grd_ = grid_new (nx_, ny_, nz_, xx, yy, zz);
+	if (ll > 0.) grid_stretch_at_edge (grd_, ll);
 }
 
-void
-Kernel::set_range (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz)
-{
-	set_range (nx, ny, nz, xx, yy, zz, 1000.);
-}
-
-
-// set observed data
+// Sets the observed measurement data.
 void
 Kernel::set_data (data_array *data)
 {
-	_data_ = data;
-	_m_ = _data_->n;
+	data_ = data;
+	m_ = data_->n;
 }
 
-// compute and return kernel matrix
-double *
-Kernel::get ()
-{
-	if (_K_ == NULL) _eval_ ();
-	return _K_;
-}
-
-// fwrite model
+// Writes the model data to a file stream.
 void
 Kernel::fwrite (FILE *stream, double *model)
 {
-	fwrite_grid_with_data (stream, _grd_, model, "%.4e\t%.4e\t%.4e\t%.8e");
+	fwrite_grid_with_data (stream, grd_, model, "%.4e\t%.4e\t%.4e\t%.8e");
 }
 
 void
 Kernel::fwrite (FILE *stream, double *model, const char *format)
 {
-	fwrite_grid_with_data (stream, _grd_, model, format);
-}
-
-/*** protected methods ***/
-// evaluate kernel matrix
-void
-Kernel::_eval_ ()
-{
-	if (_data_ == NULL) throw std::runtime_error ("please set data_array.");
-	if (_grd_ == NULL)   throw std::runtime_error ("please set range.");
-	_K_ = new double [_m_ * _n_];
-	kernel_matrix_set (_K_, _data_, _grd_, _mgz_, _exf_, _func_);
-}
-
-/*** private methods ***/
-// initializer
-void
-Kernel::__init__ ()
-{
-	_nx_ = -1;
-	_ny_ = -1;
-	_nz_ = -1;
-
-	_grd_ = NULL;
-	_data_ = NULL;
-
-	_K_ = NULL;
-
-	_func_ = NULL;
-
-	_exf_ = NULL;
-	_mgz_ = NULL;
+	fwrite_grid_with_data (stream, grd_, model, format);
 }
 
 /*** magnetic kernel ***/
 MagKernel::MagKernel (double inc, double dec)
 {
-	_exf_ = vector3d_new_with_geodesic_poler (1., inc, dec);
-	_mgz_ = vector3d_new_with_geodesic_poler (1., inc, dec);
-	// set mgcal_func to total_force_prism
-	_func_ = mgcal_func_new (total_force_prism, NULL);
+	exf_ = vector3d_new_with_geodesic_poler (1., inc, dec);
+	mgz_ = vector3d_new_with_geodesic_poler (1., inc, dec);
+	// Set the kernel function to total_force_prism.
+	func_ = mgcal_func_new (total_force_prism, NULL);
 }
 
 MagKernel::MagKernel (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec)
 {
-	_exf_ = vector3d_new_with_geodesic_poler (1., exf_inc, exf_dec);
-	_mgz_ = vector3d_new_with_geodesic_poler (1., mgz_inc, mgz_dec);
-	_func_ = mgcal_func_new (total_force_prism, NULL);
+	exf_ = vector3d_new_with_geodesic_poler (1., exf_inc, exf_dec);
+	mgz_ = vector3d_new_with_geodesic_poler (1., mgz_inc, mgz_dec);
+	func_ = mgcal_func_new (total_force_prism, NULL);
 }
 
-void
-MagKernel::set_exf (double inc, double dec)
+// Computes and returns the magnetic kernel matrix.
+double *
+MagKernel::get ()
 {
-	_exf_ = vector3d_new_with_geodesic_poler (1., inc, dec);
-}
+	if (data_ == NULL)
+		throw std::runtime_error ("Observed data has not been set. Call set_data() before get().");
+	if (grd_ == NULL)
+		throw std::runtime_error ("Model range has not been set. Call set_range() before get().");
+	if (exf_ == NULL)
+		throw std::runtime_error ("External field direction has not been set.");
+	if (mgz_ == NULL)
+		throw std::runtime_error ("Magnetization direction has not been set.");
 
-void
-MagKernel::set_mgz (double inc, double dec)
-{
-	_mgz_ = vector3d_new_with_geodesic_poler (1., inc, dec);
+	if (K_ != NULL) delete [] K_;
+	K_ = new double [m_ * n_];
+	kernel_matrix_set (K_, data_, grd_, mgz_, exf_, func_);
+
+	return K_;
 }
 
 /*** gravity kernel ***/
 GravKernel::GravKernel ()
 {
-	// set mgcal func to grav_prism
-	_func_ = mgcal_func_new (grav_prism, NULL);
+	// Set the kernel function to grav_prism.
+	func_ = mgcal_func_new (grav_prism, NULL);
+}
+
+// Computes and returns the gravity kernel matrix.
+double *
+GravKernel::get ()
+{
+	if (data_ == NULL)
+		throw std::runtime_error ("Observed data has not been set. Call set_data() before get().");
+	if (grd_ == NULL)
+		throw std::runtime_error ("Model range has not been set. Call set_range() before get().");
+
+	if (K_ != NULL) delete [] K_;
+	K_ = new double [m_ * n_];
+	kernel_matrix_set (K_, data_, grd_, NULL, NULL, func_);
+
+	return K_;
 }
 

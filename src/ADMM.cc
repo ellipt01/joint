@@ -9,297 +9,322 @@
 	extern "C" {
 #endif // __cplusplus
 
-static char		trans = 'T';
-static char		notrans = 'N';
+static char	trans = 'T';
+static char	notrans = 'N';
 static size_t	ione = 1;
 static double	dzero = 0.;
 static double	done = 1.;
 static double	dmone = -1.;
 
 double	dnrm2_ (size_t *n, double *x, size_t *inc);
-void	dscal_ (size_t *n, double *scale, double *x, size_t *inc);
-void	daxpy_ (size_t *n, double *alpha, double *x, size_t *incx, double *y, size_t *incy);
+void		dscal_ (size_t *n, double *scale, double *x, size_t *inc);
+void		daxpy_ (size_t *n, double *alpha, double *x, size_t *incx, double *y, size_t *incy);
 
 int		dpotrf_ (char *uplo, size_t *n, double *a, size_t *lda, long *nfo);
 int		dpotri_ (char *uplo, size_t *n, double *a, size_t *lda, long *nfo);
 int		dgetrf_ (size_t *m, size_t *n, double *a, size_t *lda, long *ipiv, long *info);
 int		dgetri_ (size_t *n, double *a, size_t *m, long *ipiv, double *work, size_t *lwork, long *info);
 
-void	dgemv_ (char *trans, size_t *m, size_t *n, double *alpha, double *A, size_t *ldA,
-				double *x, size_t *incx, double *beta , double *y, size_t *incy);
-void	dsymv_ (char *uplo, size_t *m, double *alpha, double *A, size_t *ldA,
-				double *x, size_t *incx, double *beta, double *y, size_t *incy);
-void	dgemm_ (char *transa, char *transb, size_t *m, size_t *n, size_t *k, double *alpha, double *A, size_t *ldA,
-				double *B, size_t *ldB, double *beta , double *C, size_t *ldC);
+void		dgemv_ (char *trans, size_t *m, size_t *n, double *alpha, double *A, size_t *ldA,
+			  double *x, size_t *incx, double *beta , double *y, size_t *incy);
+void		dsymv_ (char *uplo, size_t *m, double *alpha, double *A, size_t *ldA,
+			  double *x, size_t *incx, double *beta, double *y, size_t *incy);
+void		dgemm_ (char *transa, char *transb, size_t *m, size_t *n, size_t *k, double *alpha, double *A, size_t *ldA,
+			  double *B, size_t *ldB, double *beta , double *C, size_t *ldC);
+
+#ifdef __cplusplus
+	}
+#endif // __cplusplus
 
 
 /*** public methods ***/
+// Constructor
 ADMM::ADMM (double lambda1, double lambda2, double mu)
 {
-	__init__ ();
-	_mu_ = mu;
-	set_params (lambda1, lambda2);
+	mu_ = mu;
+	set_regularization_parameters (lambda1, lambda2);
 }
 
-// set lambda1 and lambda2
-void
-ADMM::set_params (double lambda1, double lambda2)
+// Destructor
+ADMM::~ADMM ()
 {
-	_lambda1_ = lambda1;
-	_lambda2_ = lambda2;
+	delete [] lower_;
+	delete [] f_;
+	delete [] X_;
+	delete [] w_;
+	delete [] zeta_;
+	delete [] zeta_prev_;
+	delete [] s_;
+	delete [] u_;
+	delete [] t_;
+	delete [] v_;
+	delete [] c_;
+	delete [] b_;
+	delete [] Ci_;
 }
 
-// set simultaneous equations to be solved
+// Sets the regularization parameters.
 void
-ADMM::simeq (size_t size1, size_t size2, double *f, double *X, bool normalize, double nu, double *lower)
+ADMM::set_regularization_parameters (double lambda1, double lambda2)
 {
-	_size1_ = size1;
-	_size2_ = size2;
+	lambda1_ = lambda1;
+	lambda2_ = lambda2;
+}
 
-	_f_ = f;
-	_X_ = X;
+// Sets up the problem with the given data and parameters.
+void
+ADMM::setup_problem (size_t size1, size_t size2, double *f, double *X, bool normalize, double nu, double *lower)
+{
+	size1_ = size1;
+	size2_ = size2;
+
+	f_ = f;
+	X_ = X;
 
 	if (normalize) {
-		if (_w_) delete [] _w_;
-		_w_ = _normalize_ (_size1_, _size2_, _X_);
+		if (w_) delete [] w_;
+		w_ = normalize_matrix (size1_, size2_, X_);
 	}
 
-	_nu_ = nu;
-	if (_nu_ > DBL_EPSILON) {
-		_lower_ = new double [_size2_];
-		// copy lower bounds and apply weight
-		for (size_t j = 0; j < _size2_; j++) _lower_[j] = lower[j] * _w_[j];
-		_apply_lower_bound_ = true;
+	nu_ = nu;
+	if (nu_ > DBL_EPSILON) {
+		lower_ = new double [size2_];
+		// Copies lower bounds and applies weights.
+		for (size_t j = 0; j < size2_; j++) lower_[j] = lower[j] * w_[j];
+		apply_lower_bound_ = true;
 	}
 }
 
-// return zeta
+// Retrieves the model vector (zeta).
 double *
-ADMM::get_zeta ()
+ADMM::get_model_vector ()
 {
-	if (!_zeta_) return NULL;
+	if (!zeta_) return NULL;
 
-	double	*zeta = new double [_size2_];
-	for (size_t j = 0; j < _size2_; j++) zeta[j] = _zeta_[j];
-	if (_w_ != NULL) {
-		for (size_t j = 0; j < _size2_; j++) zeta[j] /= _w_[j];
+	double	*zeta = new double [size2_];
+	for (size_t j = 0; j < size2_; j++) zeta[j] = zeta_[j];
+	if (w_ != NULL) {
+		for (size_t j = 0; j < size2_; j++) zeta[j] /= w_[j];
 	}
 	return zeta;
 }
 
-// start ADMM iteration
+// Solves the problem by running ADMM iterations until convergence.
 size_t
-ADMM::start (const double tol, const size_t maxiter, bool verbos)
+ADMM::solve (const double tol, const size_t maxiter, bool verbos)
 {
-	// initialize variables
-	_initialize_ ();
+	// Initializes the ADMM variables.
+	initialize_variables ();
 
 	// tol: tolerance, maxiter: maximum number of ADMM iterations
 	size_t	k = 0;
 	while (k < maxiter) {
 
-		_one_cycle_ ();
+		iterate ();
 
-		_residual_ = _eval_residuals_ ();
+		residual_ = eval_residuals ();
 		if (verbos && k % 100 == 0)
-			fprintf (stderr, "residual[%ld] = %.4e / %.4e\n", k, _residual_, tol);
-		if (_residual_ < tol) break;
+			fprintf (stderr, "residual[%ld] = %.4e / %.4e\n", k, residual_, tol);
+		if (residual_ < tol) break;
 
 		k++;
 	}
 	return k;
 }
 
-// recover the input data
+// Recovers the input data vector `f` from the solution `zeta`.
 double *
-ADMM::recover ()
+ADMM::recover_data ()
 {
-	double	*f = new double [_size1_];
+	double	*f = new double [size1_];
 	// f = X * zeta
-	dgemv_ (&notrans, &_size1_, &_size2_, &done, _X_, &_size1_, _zeta_, &ione, &dzero, f, &ione);
+	dgemv_ (&notrans, &size1_, &size2_, &done, X_, &size1_, zeta_, &ione, &dzero, f, &ione);
 	return f;
 }
 
 /*** protected methods ***/
-// initialize zeta, s, and u by padding 0,
-// also t and v are initialized when bound constraint is applied
+// Initializes all ADMM variables (zeta, s, u) to zero.
+// Also initializes t and v if a lower bound constraint is applied.
 void
-ADMM::_initialize_ ()
+ADMM::initialize_variables ()
 {
-	if (_size1_ == 0 || _size2_ == 0) throw std::runtime_error ("size not specified");
+	if (size1_ == 0 || size2_ == 0) throw std::runtime_error ("size not specified");
 
-	_residual_ = 0.;
+	residual_ = 0.;
 
-	// allocate and initialize
-	// model vector
-	if (_zeta_) delete [] _zeta_; 
-	_zeta_ = new double [_size2_];
-	for (size_t i = 0; i < _size2_; i++) _zeta_[i] = 0.;
+	// Allocates and initializes memory for all vectors.
+	// Model vector
+	if (zeta_) delete [] zeta_;
+	zeta_ = new double [size2_];
+	for (size_t i = 0; i < size2_; i++) zeta_[i] = 0.;
 
-	// backup
-	if (_zeta_prev_) delete [] _zeta_prev_;
-	_zeta_prev_ = new double [_size2_];
-	for (size_t i = 0; i < _size2_; i++) _zeta_prev_[i] = 0.;
+	// Backup for the previous model vector
+	if (zeta_prev_) delete [] zeta_prev_;
+	zeta_prev_ = new double [size2_];
+	for (size_t i = 0; i < size2_; i++) zeta_prev_[i] = 0.;
 
-	// slack vector introduced to separate penalty
-	if (_s_) delete [] _s_;
-	_s_ = new double [_size2_];
-	for (size_t i = 0; i < _size2_; i++) _s_[i] = 0.;
+	// Slack variable for regularization penalty
+	if (s_) delete [] s_;
+	s_ = new double [size2_];
+	for (size_t i = 0; i < size2_; i++) s_[i] = 0.;
 
-	// Lagrange dual
-	if (_u_) delete [] _u_;
-	_u_ = new double [_size2_];
-	for (size_t i = 0; i < _size2_; i++) _u_[i] = 0.;
+	// Lagrange dual for regularization penalty
+	if (u_) delete [] u_;
+	u_ = new double [size2_];
+	for (size_t i = 0; i < size2_; i++) u_[i] = 0.;
 
-	// lower bound onstraint
-	if (_apply_lower_bound_) {
-		// slack vector for bound constraint
-		if (_t_) delete [] _t_;
-		_t_ = new double [_size2_];
-		for (size_t i = 0; i < _size2_; i++) _t_[i] = 0.;
-		// Lagrange dual
-		if (_v_) delete [] _v_;
-		_v_ = new double [_size2_];
-		for (size_t i = 0; i < _size2_; i++) _v_[i] = 0.;
+	// Lower bound constraint variables
+	if (apply_lower_bound_) {
+		// Slack variable for the bound constraint
+		if (t_) delete [] t_;
+		t_ = new double [size2_];
+		for (size_t i = 0; i < size2_; i++) t_[i] = 0.;
+		// Lagrange dual for the bound constraint
+		if (v_) delete [] v_;
+		v_ = new double [size2_];
+		for (size_t i = 0; i < size2_; i++) v_[i] = 0.;
 	}
 
 }
 
-// compute Ci and CYi:
+// Computes the intermediate matrix `Ci` for the zeta update step.
 // Ci = (X.T * X + (mu + nu) * I)^-1
 void
-ADMM::_calc_Ci_ ()
+ADMM::compute_Ci ()
 {
-	if (_Ci_ != NULL) delete [] _Ci_;
-	_Ci_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_);
+	if (Ci_ != NULL) delete [] Ci_;
+	Ci_ = compute_Cinv_for_SMW (mu_ + nu_, size1_, size2_, X_);
 }
 
-// update b and by:
+// Updates the intermediate vector `b` for the zeta update step.
 // b = X.T * f + mu * (s + u) + nu * (t + v)
 void
-ADMM::_update_b_ ()
+ADMM::update_b ()
 {
 	// b = X.T * f + mu * (s + u)
-	if (_b_ == NULL) _b_ = new double [_size2_];
-	if (_c_ == NULL) {
-		_c_ = new double [_size2_];
-		dgemv_ (&trans, &_size1_, &_size2_, &done, _X_, &_size1_, _f_, &ione, &dzero, _c_, &ione);
+	if (b_ == NULL) b_ = new double [size2_];
+	if (c_ == NULL) {
+		c_ = new double [size2_];
+		dgemv_ (&trans, &size1_, &size2_, &done, X_, &size1_, f_, &ione, &dzero, c_, &ione);
 	}
-	for (size_t i = 0; i < _size2_; i++) _b_[i] = _c_[i] + _mu_ * (_s_[i] + _u_[i]);
-	if (_apply_lower_bound_) {
-		for (size_t i = 0; i < _size2_; i++) _b_[i] += _nu_ * (_t_[i] + _v_[i]);
+	for (size_t i = 0; i < size2_; i++) b_[i] = c_[i] + mu_ * (s_[i] + u_[i]);
+	if (apply_lower_bound_) {
+		for (size_t i = 0; i < size2_; i++) b_[i] += nu_ * (t_[i] + v_[i]);
 	}
 }
 
-// update zeta:
-// zeta = (I - X.T * Ci * X) * b / (mu + nu) 
+// Updates the model vector `zeta`.
+// zeta = (I - X.T * Ci * X) * b / (mu + nu)
 // Ci = (X * X.T + (mu + nu) * I)^-1
 void
-ADMM::_update_zeta_ ()
+ADMM::update_zeta ()
 {
-	if (_Ci_ == NULL) _calc_Ci_ ();
-	if (_zeta_) {
-		for (size_t i = 0; i < _size2_; i++) _zeta_prev_[i] = _zeta_[i];
-		delete [] _zeta_;
+	if (Ci_ == NULL) compute_Ci ();
+	if (zeta_) {
+		for (size_t i = 0; i < size2_; i++) zeta_prev_[i] = zeta_[i];
+		delete [] zeta_;
 	}
 	// zeta = (b - X.T * Ci * X * b) / (mu + nu)
-	_zeta_ = _eval_zeta_SMW_ (_mu_ + _nu_, _size1_, _size2_, _X_, _Ci_, _b_);
+	zeta_ = eval_zeta_using_SMW (mu_ + nu_, size1_, size2_, X_, Ci_, b_);
 }
 
-// update s:
-// s = C1 * S(q, lambda1 / mu), q = zeta - v
+// Updates the slack variable `s`.
+// s = C1 * S(q, lambda1 / mu), where q = zeta - u and S is the soft-thresholding operator.
 void
-ADMM::_update_s_ ()
+ADMM::update_s ()
 {
-	double	ck = _mu_ / (_mu_ + _lambda2_);
+	double	ck = mu_ / (mu_ + lambda2_);
 
 #pragma omp parallel for
-	for (size_t j = 0; j < _size2_; j++) {
-		double	qj = _zeta_[j] - _u_[j];
-		double	cj = _soft_threshold_ (qj, _lambda1_ / _mu_);
-		_s_[j] = ck * cj; 
+	for (size_t j = 0; j < size2_; j++) {
+		double	qj = zeta_[j] - u_[j];
+		double	cj = soft_threshold (qj, lambda1_ / mu_);
+		s_[j] = ck * cj;
 	}
 }
 
-// update t: lower boubd constraint
-// t = max (lower, zeta - v)
+// Updates the slack variable `t` for the lower bound constraint.
+// t = max(lower, zeta - v)
 void
-ADMM::_update_t_ ()
+ADMM::update_t ()
 {
 #pragma omp parallel for
-	for (size_t j = 0; j < _size2_; j++) {
-		double	lj = _lower_[j];
-		double	qj = _zeta_[j] - _v_[j];
-		_t_[j] = (lj < qj) ? qj : lj;
+	for (size_t j = 0; j < size2_; j++) {
+		double	lj = lower_[j];
+		double	qj = zeta_[j] - v_[j];
+		t_[j] = (lj < qj) ? qj : lj;
 	}
 }
 
-// update u: u = u + mu * (s - zeta)
+// Updates the dual variable `u`.
+// u = u + mu * (s - zeta)
 void
-ADMM::_update_u_ ()
+ADMM::update_u ()
 {
-	for (size_t j = 0; j < _size2_; j++) _u_[j] += _mu_ * (_s_[j] - _zeta_[j]);
+	for (size_t j = 0; j < size2_; j++) u_[j] += mu_ * (s_[j] - zeta_[j]);
 }
 
-// update v: v = v + nu * (t - zeta)
+// Updates the dual variable `v`.
+// v = v + nu * (t - zeta)
 void
-ADMM::_update_v_ ()
+ADMM::update_v ()
 {
-	for (size_t j = 0; j < _size2_; j++) _v_[j] += _nu_ * (_t_[j] - _zeta_[j]);
+	for (size_t j = 0; j < size2_; j++) v_[j] += nu_ * (t_[j] - zeta_[j]);
 }
 
-// perform ADMM iteration at once
+// Performs a single full cycle of ADMM iterations.
 void
-ADMM::_one_cycle_ ()
+ADMM::iterate ()
 {
-	_update_b_ ();
-	_update_zeta_ ();
-	_update_s_ ();
-	_update_u_ ();
-	if (_apply_lower_bound_) {
-		_update_t_ ();
-		_update_v_ ();
+	update_b ();
+	update_zeta ();
+	update_s ();
+	update_u ();
+	if (apply_lower_bound_) {
+		update_t ();
+		update_v ();
 	}
 }
 
 /*
-	evaluate current residual dr:
+	Evaluates the current residual for convergence check.
 	dr = MAX (||s - zeta|| / sqrt (M), mu * ||zeta - zeta_prev|| / sqrt (M))
- */
+*/
 double
-ADMM::_eval_residuals_ ()
+ADMM::eval_residuals ()
 {
-	double	*dt = new double [_size2_];
-	double	*dz = new double [_size2_];
+	double	*dt = new double [size2_];
+	double	*dz = new double [size2_];
 
 #pragma omp parallel for
-	for (size_t j = 0; j < _size2_; j++) {
+	for (size_t j = 0; j < size2_; j++) {
 		// dt = s - zeta
-		dt[j] = _s_[j] - _zeta_[j];
+		dt[j] = s_[j] - zeta_[j];
 		// dz = mu * (zeta - zeta_prev)
-		dz[j] = _mu_ * (_zeta_[j] - _zeta_prev_[j]);
+		dz[j] = mu_ * (zeta_[j] - zeta_prev_[j]);
 	}
 
-	double	dr1 = dnrm2_ (&_size2_, dt, &ione) / sqrt ((double) _size2_);
+	double	dr1 = dnrm2_ (&size2_, dt, &ione) / sqrt ((double) size2_);
 	delete [] dt;
-	double	dr2 = dnrm2_ (&_size2_, dz, &ione) / sqrt ((double) _size2_);
+	double	dr2 = dnrm2_ (&size2_, dz, &ione) / sqrt ((double) size2_);
 	delete [] dz;
 
 	return (dr1 >= dr2) ? dr1 : dr2;
 }
 
-// soft threshold: S(x, l) = sign(x) * (|x| - l)+
+// Applies the soft-thresholding operator: S(x, l) = sign(x) * (|x| - l)+
 double
-ADMM::_soft_threshold_ (double gamma, double lambda)
+ADMM::soft_threshold (double gamma, double lambda)
 {
 	double	sign = (gamma >= 0.) ? 1. : -1.;
 	double	ci = fabs (gamma) - lambda;
 	return sign * ((ci >= 0) ? ci : 0.);
 }
 
-// normalize matrix *K and store || kj || in vector *w
+// Normalizes the columns of a matrix `K` and returns a vector `w`
+// containing the Euclidean norm of each original column.
 double *
-ADMM::_normalize_ (size_t m, size_t n, double *K)
+ADMM::normalize_matrix (size_t m, size_t n, double *K)
 {
 	double	*w = new double [n];
 #pragma omp parallel for
@@ -312,21 +337,23 @@ ADMM::_normalize_ (size_t m, size_t n, double *K)
 	return w;
 }
 
-// compute inverse using dpotrf and dpotri (cholesky)
+// Computes the inverse of a matrix `C` using Cholesky decomposition.
+// Calls the LAPACK routines dpotrf and dpotri.
 void
-ADMM::_cholinv_ (char uplo, size_t n, double *C)
+ADMM::cholinv (char uplo, size_t n, double *C)
 {
 	long	info;
 	dpotrf_ (&uplo, &n, C, &n, &info);
 	dpotri_ (&uplo, &n, C, &n, &info);
 }
 
-// compute inverse using dgetrf and dgetri (LU)
+// Computes the inverse of a matrix `C` using LU decomposition.
+// Calls the LAPACK routines dgetrf and dgetri.
 void
-ADMM::_LUinv_ (size_t m, size_t n, double *C)
+ADMM::LUinv (size_t m, size_t n, double *C)
 {
 	long	info;
-	size_t	min_mn = (m < n) ? m : n; 
+	size_t	min_mn = (m < n) ? m : n;
 	long	*ipiv = new long [min_mn];
 	dgetrf_ (&m, &n, C, &m, ipiv, &info);
 
@@ -341,12 +368,10 @@ ADMM::_LUinv_ (size_t m, size_t n, double *C)
 	delete [] work;
 }
 
-// compute inverse (K * K.T + coef * I)^-1 for the data-space inversion
-// using following Sherman Morrison Woodbury (SMW) formula:
-// (c * I + K.T * K)^-1 = (I - K.T * (c * I + K * K.T)^-1 * K) / c
-// This method computes Ci = (c * I + K * K.T)^-1
+// Computes `inv(K * K.T + coef * I)` for use in the Sherman-Morrison-Woodbury formula.
+// The computed matrix is the `C_i` (intermediate inverse) in the formula.
 double *
-ADMM::_Cinv_SMW_ (double coef, size_t m, size_t n, double *K)
+ADMM::compute_Cinv_for_SMW (double coef, size_t m, size_t n, double *K)
 {
 	// Ci = (K * K.T / coef + I)^-1
 	double	*Ci = new double [m * m];
@@ -354,18 +379,18 @@ ADMM::_Cinv_SMW_ (double coef, size_t m, size_t n, double *K)
 	dgemm_ (&notrans, &trans, &m, &m, &n, &alpha, K, &m, K, &m, &dzero, Ci, &m);
 	for (size_t i = 0; i < m; i++) Ci[i + i * m] += 1.; // Ci = K * K.T / coef + I
 #ifdef USE_LUINV
-	_LUinv_ (Ci);
+	LUinv (Ci);
 #else
-	_cholinv_ ('U', m, Ci);
+	cholinv ('U', m, Ci);
 #endif
 	return Ci;
 }
 
-// compute zeta using SMW formula
-// via compute zeta = [ I - (1 / coef) * K.T * Ci * K ] * b / coef,
-// where Ci = (K * K.T / coef + I)^-1 
+// Computes the `zeta` update step using the Sherman-Morrison-Woodbury formula.
+// The calculation is: zeta = [ I - (1 / coef) * K.T * Ci * K ] * b / coef,
+// where Ci = (K * K.T / coef + I)^-1.
 double *
-ADMM::_eval_zeta_SMW_ (double coef, size_t m, size_t n, double *K, double *Ci, double *b)
+ADMM::eval_zeta_using_SMW (double coef, size_t m, size_t n, double *K, double *Ci, double *b)
 {
 	if (coef <= 0.) throw std::runtime_error ("coef must be > 0.");
 
@@ -396,38 +421,3 @@ ADMM::_eval_zeta_SMW_ (double coef, size_t m, size_t n, double *K, double *Ci, d
 	}
 	return zeta;
 }
-
-/*** private methods ***/
-void
-ADMM::__init__ ()
-{
-	_size1_ = 0;
-	_size2_ = 0;
-
-	_f_ = NULL;
-	_X_ = NULL;
-	_w_ = NULL;
-
-	_mu_ = 0.;
-	_nu_ = 0.;
-	_apply_lower_bound_ = false;
-	_lower_ = NULL;
-
-	_zeta_ = NULL;
-	_zeta_prev_ = NULL;
-
-	_s_ = NULL;
-	_u_ = NULL;
-
-	_t_ = NULL;
-	_v_ = NULL;
-
-	_c_ = NULL;
-	_b_ = NULL;
-	_Ci_ = NULL;
-}
-
-#ifdef __cplusplus
-	}
-#endif // __cplusplus
-

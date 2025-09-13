@@ -1,158 +1,126 @@
-#ifndef _ADMM_H_
-#define _ADMM_H_
+#ifndef ADMM_H_
+#define ADMM_H_
 
-/***
-	ADMM: class implements the Alternative Direction Method of Multiplier (ADMM) algorithm
-
-	This class is designed for solving a linear problem with L1-L2 norm regularization:
-	
-	min (1/2) ||f - X * zeta||^2 + lambda1 * |zeta| + lambda2 ||zeta||^2/2
-
-	where ||a|| indicates the Euclidean norm, and |a| is the absolute norm of a vector a.
-
-	Instead to minimize this objective function, ADMM searchs an optimal solution
-	of the following constrained optimization problem:
-	
-	min (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 ||s||^2/2 s.t. s = zeta,
-	
-	where s is a slack vector.
-	The augmented Lagrange function of this problem is
-	
-	L = (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 ||s||^2/2
-		+ (mu / 2) * ||s - zeta + u||^2,
-
-	where u is the Lagrange dual vector, and mu is a penalty parameter.
-	
-	ADMM searhcs a model zeta which minimizes this function by the following
-	coordinate descent method, e.g. repeat the following cycle until converged:
-	
-	1. update zeta: zeta^{k+1} = (X.T * X + mu * I)^-1 * {X.T * f + mu * (s^k - u^k)}
-	2. update s: s^{k+1} = (mu / (mu + lambda2)) * S(zeta^{k+1} - u^k, lambda1 / mu),
-	   where S() is a soft threshold operator of the L1-L2 norm penalty,
-	3. update u by the multiplyer method: u^{k+1} = u^k + mu * (s^{k+1} - zeta^{l+1}),
-
-	where a^k is the vector obtained by the k-th iteration.
-	the steps 1, 2, and 3 of above are implemented by
-	_update_b_ () and _update_zeta (),
-	_update_s_ (), and _update_u_ ().
-
-	This class allows to apply lower bound constraint
-	
-	zeta_min <= zeta_i
-	
-	This is implemented by add the following cycle to the ADMM iteration:
-	4. update t: t_i^{k+1} = max(max (zeta_min, zeta_i^k - v_i^k)
-	5. update v: v^{k+1} = v^k + nu * (t^{k+1} - zeta^{k+1})
-
-	where t is a slack vector, v is a Lagrange vector, and nu is a penalty parameter
-	for the lower bound constraint.
-	step 4 and 5 are implemented by _update_t_ () and _update_v_ (),
-	and one cycle of the update is implemented by _one_cycle_ ().
-	
-	The steps 1-6 are repeated until solution converged, and this process is
-	implemented by start ().
-
-***/
+/*
+ * ADMM: An implementation of the Alternating Direction Method of Multipliers (ADMM) algorithm.
+ *
+ * This class solves a linear problem with L1-L2 norm regularization, defined as:
+ * min (1/2) ||f - X * zeta||^2 + lambda1 * |zeta| + lambda2 * ||zeta||^2 / 2
+ *
+ * The ADMM algorithm transforms this into a constrained optimization problem:
+ * min (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 * ||s||^2 / 2  s.t. s = zeta
+ *
+ * It then minimizes the augmented Lagrangian function:
+ * L = (1/2) ||f - X * zeta||^2 + lambda1 * |s| + lambda2 * ||s||^2 / 2 + (mu / 2) * ||s - zeta + u||^2
+ *
+ * The algorithm iteratively updates the variables (zeta, s, u) until convergence.
+ *
+ * Optional lower bound constraints (zeta_min <= zeta_i) can be applied by adding
+ * two extra update steps for slack vector 't' and Lagrange dual 'v'.
+ */
 class ADMM {
 protected:
-	size_t	_size1_;	// num of data (=dim(f)), row of the kernel matrix X
-	size_t	_size2_;	// num of subsurface grid cells, nim of columns of X
+	size_t	size1_ = 0;	// Number of data points (rows of X)
+	size_t	size2_ = 0;	// Number of model variables (columns of X)
 
-	double	_lambda1_;	// regularization parameter for group lasso penalty
-	double	_lambda2_;	// regularization parameter for L2 norm penalty
+	double	lambda1_ = 0.;	// Regularization parameter for the L1-norm penalty
+	double	lambda2_ = 0.;	// Regularization parameter for the L2-norm penalty
 
-	double	_mu_;		// penalty parameter for regularization
-
-	double	_nu_;		// penalty parameter for lower bounds
-	double	*_lower_;	// lower bound
-	bool	_apply_lower_bound_;	// if lower bound constraint is applied, takes true
+	double	mu_ = 0.;		// Penalty parameter for the regularization term
+	
+	double	nu_ = 0.;		// Penalty parameter for the lower bound constraint
+	double	*lower_ = NULL;	// Array of lower bound values for each variable
+	bool		apply_lower_bound_ = false;	// True if lower bound constraint is active
 
 	// input data
-	double	*_f_;		// observed data
+	double	*f_ = NULL;	// Observed data vector
 
 	// transform matrix
-	double	*_X_;		// kernel matrix
+	double	*X_ = NULL;	// Kernel matrix (transformation matrix)
 
 	// weighting
-	double	*_w_;		// reciprocal of sensitivity weighting
+	double	*w_ = NULL;	// Reciprocal of sensitivity weighting, used for normalization
 
-	double	*_zeta_;	// model vector
+	double	*zeta_ = NULL;	// The primary model vector being solved for
 
-	double	*_zeta_prev_;	// backup for model vector
+	double	*zeta_prev_ = NULL;	// Backup of the model vector from the previous iteration
 
 	/*** regularization penalty ***/
-	double	*_s_;		// slack variable
-	double	*_u_;		// Lagrange dual
+	double	*s_ = NULL;	// Slack variable for the L1-L2 penalty term
+	double	*u_ = NULL;	// Lagrange dual variable for the L1-L2 penalty term
 
 	/**** lower bound constraint ***/
-	double	*_t_;		// slack variable
-	double	*_v_;		// Lagrange dual
+	double	*t_ = NULL;	// Slack variable for the lower bound constraint
+	double	*v_ = NULL;	// Lagrange dual variable for the lower bound constraint
 
-	double	*_c_;		// = X.T * f
-	double	*_b_;		// = c + coef * (t + v)
-	double	*_Ci_;		// = (X * X.T + coef * I)^-1
+	double	*c_ = NULL;	// Pre-computed vector: X.T * f
+	double	*b_ = NULL;	// Pre-computed vector: c + mu * (s - u)
+	double	*Ci_ = NULL;	// Pre-computed inverse matrix: inv(X * X.T + mu * I)
 
-	double	_residual_;
+	double	residual_ = 0.;
 
 public:
-	ADMM () { __init__ (); }
+	ADMM () { }
 	ADMM (double lambda1, double lambda2, double mu);
+	~ADMM ();
 
 	// get model vector zeta
-	double	*get_zeta ();
+	double	*get_model_vector ();
 
 	// get depth weightings
-	double	*get_w () { return _w_; } // get depth weighting of kernel matrix
+	double	*get_depth_weights () { return w_; } // Returns the weighting vector
 
 	// set regulatization parameters
-	void	set_params (double lambda1, double lambda2);
-	void	simeq (size_t size1, size_t size2, double *f, double *X, bool normalize, double nu, double *lower);
+	void		set_regularization_parameters (double lambda1, double lambda2);
+	void		setup_problem (size_t size1, size_t size2, double *f, double *X, bool normalize, double nu = 0., double *lower = NULL);
 
-	// start ADMM iteration until model converged
-	size_t	start (const double tol, const size_t maxiter) { return start (tol, maxiter, false); };
-	size_t	start (const double tol, const size_t maxiter, bool verbos);
+	// solve problem by running ADMM iteration until model converged
+	size_t	solve (const double tol, const size_t maxiter, bool verbos = false);
 
 	// get residual
-	double	residual () { return _residual_; }
+	double	get_residual () { return residual_; }
 
 	// recover the input data
-	double	*recover ();
+	double	*recover_data ();
 
 protected:
-	void	_initialize_ (); 	// initialize zeta, s, and u
+	// Initializes zeta, s, and u to default values
+	void		initialize_variables ();
 
-	void	_calc_Ci_ ();  // compute CXi = inv(X * X.T + coef * I)
+	// Computes and stores the pre-factorized inverse matrix Ci
+	void		compute_Ci ();
 
 	// ADMM iterations
-	void	_update_b_ (); // update b = X.T * f + coef * (s + u)
-	void	_update_zeta_ ();
-	void	_update_s_ ();
-	void	_update_t_ ();
+	void		update_b (); // Updates the intermediate vector 'b' for the zeta update step
+	void		update_zeta ();
+	void		update_s ();
+	void		update_t ();
 
 	// update duals
-	void	_update_u_ ();
-	void	_update_v_ ();
+	void		update_u ();
+	void		update_v ();
 
-	void	_one_cycle_ ();	// perform ADMM iteration at once
+	// Performs a single full cycle of the ADMM updates
+	void		iterate ();
 
-	double	_eval_residuals_ (); // for convergence check
+	// Evaluates the primal and dual residuals for convergence check
+	double	eval_residuals ();
 
 	// soft threshold for L2 + L1
-	double	_soft_threshold_ (double gamma, double lambda);
+	double	soft_threshold (double gamma, double lambda);
 
 	// normalize matrix K and return weighting
-	double	*_normalize_ (size_t m, size_t n, double *K);
+	double	*normalize_matrix (size_t m, size_t n, double *K);
 	// compute inv(C) using cholesky decomposition
-	void	_cholinv_ (char uplo, size_t n, double *C);
+	void		cholinv (char uplo, size_t n, double *C);
 	// compute inv(C) using LU decomposition
-	void	_LUinv_ (size_t m, size_t n, double *C);
-	// compute inv(X * X.T + coef * I)
-	double	*_Cinv_SMW_ (double coef, size_t m, size_t n, double *K);
-	// compute (I - X.T * Ci * X) * b / coef
-	double	*_eval_zeta_SMW_ (double coef, size_t m, size_t n, double *K, double *Ci, double *b);
+	void		LUinv (size_t m, size_t n, double *C);
+	// Computes inv(X * X.T + coef * I) for the Sherman-Morrison-Woodbury formula.
+	double	*compute_Cinv_for_SMW (double coef, size_t m, size_t n, double *K);
+	// Computes the zeta update step (I - X.T * Ci * X) * b / coef using the Sherman-Morrison-Woodbury formula.
+	double	*eval_zeta_using_SMW (double coef, size_t m, size_t n, double *K, double *Ci, double *b);
 
 private:
-	void	__init__ ();
 };
 
 #endif

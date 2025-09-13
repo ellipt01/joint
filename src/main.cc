@@ -16,16 +16,16 @@ main (int argc, char **argv)
 		joint.prepare (argc, argv);
 	} catch (std::runtime_error e) {
 		std::cerr << e.what () << std::endl;
-		joint.usage ();
+		joint.print_usage ();
 		exit (1);
 	}
 
-	joint.fwrite_inline (stderr);
-	joint.fwrite_settings (stderr);
+	joint.print_command_line_options (stderr);
+	joint.print_settings (stderr);
 
 	try {
 		size_t	niter = joint.start (true);
-		std::cerr << "number of iterations = " << niter << " / " << joint.get_maxiter () << std::endl;
+		std::cerr << "number of iterations = " << niter << " / " << joint.get_max_iterations () << std::endl;
 		joint.export_results ();
 	} catch (std::runtime_error e) {
 		std::cerr << "ERROR: " << ": " << e.what () << std::endl;

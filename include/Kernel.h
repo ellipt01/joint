@@ -2,100 +2,95 @@
 #define _KERNEL_H_
 
 /***
-	Kernel: super class of kernel matrix calculator
+	@class Kernel
+	@brief Base class for calculating kernel matrices.
 
-	This class provides a template for calculating the kernel functions
-	used for magnetic and gravity inversion.
+	This class provides an interface for computing the kernel matrices
+	used in magnetic and gravity inversion.
 
-	*** flow of the processing ***
-	set_range (): specify the range and number of subdivisions of the model space.
-	set_data (): register observation data (observed locations, altitudes, and anomalies).  
-	get (): compute kernel matrix and return it.
-
+	@section workflow Typical Workflow
+	1. set_range(): Specify the model space dimensions and discretization.
+	2. set_data():  Register the observed data (locations, altitudes, anomalies).
+	3. get():       Compute the kernel matrix (if not already computed) and return it.
 ***/
 class Kernel {
 
 protected:
-	// number of grid
-	size_t		_nx_;
-	size_t		_ny_;
-	size_t		_nz_;
+	// Grid dimensions
+	size_t	nx_ = 0;
+	size_t	ny_ = 0;
+	size_t	nz_ = 0;
 
-	// range of model space
-	double		*_xx_;
-	double		*_yy_;
-	double		*_zz_;
+	// Model space coordinates
+	double	*xx_ = NULL;
+	double	*yy_ = NULL;
+	double	*zz_ = NULL;
 
-	// grid object for model space
-	grid		*_grd_;
-	// observed data
-	data_array	*_data_;
+	// Grid object representing the model space
+	grid			*grd_ = NULL;
+	// Observed data points
+	data_array	*data_ = NULL;
 
-	// kernel matrix
-	size_t		_m_;
-	size_t		_n_;
-	double		*_K_;
+	// The computed kernel matrix (m x n)
+	size_t	m_ = 0;
+	size_t	n_ = 0;
+	double	*K_ = NULL;
 
-	// mgcal func for computing kernel matrix
-	mgcal_func	*_func_;
-
-	// unit vector parallel to external field and magnetization
-	vector3d	*_exf_;
-	vector3d	*_mgz_;
+	// Pointer to the specific kernel computation function
+	mgcal_func	*func_ = NULL;
 
 public:
-	Kernel () { __init__ (); }
+	Kernel () { }
+	~Kernel ();
 
-	// set range and creates grid for model space
-	void	set_range (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz);
-	void	set_range (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz, const double ll);
-	// set surface topography
-	void	set_surface (double *zsurf) { grid_set_surface (_grd_, zsurf); }
-	// set observed data
-	void	set_data (data_array *array);
+	// Sets the model space dimensions and creates the grid.
+	void		set_range (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz, const double ll = 0.);
+	// Sets the surface topography for the model grid.
+	void		set_surface (double *zsurf) { grid_set_surface (grd_, zsurf); }
+	// Sets the observed measurement data.
+	void		set_data (data_array *array);
 
-	// compute and return kernel matrix
-	double	*get ();
+	// Computes and returns the kernel matrix.
+	virtual double	*get () = 0;
 
-	// return grid object of the model space
-	grid	*get_grid () { return _grd_; }
+	// Returns a pointer to the grid object.
+	grid		*get_grid () { return grd_; }
 
-	// fwrite model
-	void	fwrite (FILE *stream, double *model);
-	void	fwrite (FILE *stream, double *model, const char *format);
-
-protected:
-	// evaluate kernel matrix
-	void	_eval_ ();
+	// Writes the model data to a file stream.
+	void		fwrite (FILE *stream, double *model);
+	void		fwrite (FILE *stream, double *model, const char *format);
 
 private:
-	// initializer
-	void	__init__ ();
+
 };
 
 /***
-	MagKernel: class for computing magnetic kernel
+	@class MagKernel
+	@brief Computes the kernel matrix for magnetic inversion.
 ***/
 class MagKernel : public Kernel
 {
+	// Unit vectors for external magnetic field and magnetization direction
+	vector3d	*exf_ = NULL;
+	vector3d	*mgz_ = NULL;
 
 public:
 	MagKernel (double inc, double dec);
 	MagKernel (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec);
-
-	// set direction vector of external field and magnetization
-	void	set_exf (double inc, double dec);
-	void	set_mgz (double inc, double dec);
+	double	*get ();
 };
 
 /***
-	GravKernel: class for computing gravity kernel
+	@class GravKernel
+	@brief Computes the kernel matrix for gravity inversion.
 ***/
 class GravKernel : public Kernel
 {
 
 public:
 	GravKernel ();
+	double	*get ();
+
 };
 
 #endif

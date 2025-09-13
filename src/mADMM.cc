@@ -10,409 +10,399 @@
 	extern "C" {
 #endif // __cplusplus
 
-static char		trans = 'T';
-static char		notrans = 'N';
+static char	trans = 'T';
+static char	notrans = 'N';
 static size_t	ione = 1;
 static double	dzero = 0.;
 static double	done = 1.;
 static double	dmone = -1.;
 
 double	dnrm2_ (size_t *n, double *x, size_t *inc);
-void	dgemv_(char *trans, size_t *m, size_t *n, double *alpha, double *A, size_t *ldA,
-			   double *x, size_t *incx, double *beta , double *y, size_t *incy);
-
-/*** public methods ***/
-mADMM::mADMM (double lambda1, double lambda2, double mu)
-{
-	__init__ ();
-	_mu_ = mu;
-	set_params (lambda1, lambda2);
-}
-
-// set simultaneous equations to be solved
-void
-mADMM::simeq (size_t size1_mag, size_t size1_grv, size_t size2,
-			  double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower)
-{
-	_size1_mag_ = size1_mag;
-	_size1_grv_ = size1_grv;
-	_size2_ = size2;
-
-	_m_ = _size1_mag_ + _size1_grv_;
-	_n_ = 2 * _size2_;
-
-	_f_ = f;
-	_g_ = g;
-
-	_X_ = X;
-	_Y_ = Y;
-
-	if (normalize) {
-		if (_wx_) delete [] _wx_;
-		_wx_ = _normalize_ (_size1_mag_, _size2_, _X_);
-		if (_wy_) delete [] _wy_;
-		_wy_ = _normalize_ (_size1_grv_, _size2_, _Y_);
-	}
-
-	if (nu > DBL_EPSILON && lower != NULL) {
-		_nu_ = nu;
-		_lower_ = new double [_n_];
-		// copy lower bounds and apply weight
-		for (size_t j = 0; j < _size2_; j++) {
-			_lower_[j] = lower[j] * _wx_[j];
-			_lower_[j + _size2_] = lower[j + _size2_] * _wy_[j];
-		}
-		_apply_lower_bound_ = true;
-	}
-}
-
-
-// return beta
-double *
-mADMM::get_beta ()
-{
-	if (!_beta_) return NULL;
-
-	double	*beta = new double [_size2_];
-	for (size_t j = 0; j < _size2_; j++) beta[j] = _beta_[j];
-
-	if (_wx_ != NULL) {
-		for (size_t j = 0; j < _size2_; j++) beta[j] /= _wx_[j];
-	}
-
-	return beta;
-}
-
-// return rho
-double *
-mADMM::get_rho ()
-{
-	if (!_rho_) return NULL;
-
-	double	*rho = new double [_size2_];
-	for (size_t j = 0; j < _size2_; j++) rho[j] = _rho_[j];
-
-	if (_wy_ != NULL) {
-		for (size_t j = 0; j < _size2_; j++) rho[j] /= _wy_[j];
-	}
-
-	return rho;
-}
-
-// start ADMM iteration
-size_t
-mADMM::start (const double tol, const size_t maxiter, bool verbos)
-{
-	// initialize zeta (beta, rho), s, and u, and set to 0
-	_initialize_ ();
-
-	// tol: tolerance, maxiter: maximum number of ADMM iterations
-	size_t	k;
-	for (k = 0; k < maxiter; k++) {
-
-		_one_cycle_ ();
-
-		_residual_ = _eval_residuals_ ();
-		if (verbos && k % 100 == 0)
-			fprintf (stderr, "residual[%ld] = %.4e / %.4e\n", k, _residual_, tol);
-		if (_residual_ < tol) break;
-	}
-	return k;
-}
-
-// recover the input data
-void
-mADMM::recover (double *f, double *g)
-{
-	dgemv_ (&notrans, &_size1_mag_, &_size2_, &done, _X_, &_size1_mag_, _beta_, &ione, &dzero, f, &ione);
-	dgemv_ (&notrans, &_size1_grv_, &_size2_, &done, _Y_, &_size1_grv_, _rho_,  &ione, &dzero, g, &ione);
-	return;
-}
-
-/*** protected methods ***/
-// initialize beta, rho, s, and u by padding 0,
-// also t and v are initialized when bound constraint is applied
-void
-mADMM::_initialize_ ()
-{
-	if (_size1_mag_ == 0 || _size1_grv_ == 0) throw std::runtime_error ("number of data not specified");
-	if (_size2_ == 0) throw std::runtime_error ("number of grid cells not specified");
-
-	_residual_ = 0.;
-
-	// allocate and initialize
-	// magnetization
-	if (_beta_) delete [] _beta_;
-	_beta_ = new double [_size2_];
-	for (size_t i = 0; i < _size2_; i++) _beta_[i] = 0.;
-
-	// density
-	if (_rho_) delete [] _rho_;
-	_rho_ = new double [_size2_];
-	for (size_t i = 0; i < _size2_; i++) _rho_[i] = 0.;
-
-	// backup
-	if (_beta_prev_) delete [] _beta_prev_;
-	_beta_prev_ = new double [_size2_];
-	for (size_t i = 0; i < _size2_; i++) _beta_prev_[i] = 0.;
-
-	// density
-	if (_rho_prev_) delete [] _rho_prev_;
-	_rho_prev_ = new double [_size2_];
-	for (size_t i = 0; i < _size2_; i++) _rho_prev_[i] = 0.;
-
-	// slack vector introduced to separate penalty
-	if (_s_) delete [] _s_;
-	_s_ = new double [_n_];
-	for (size_t i = 0; i < _n_; i++) _s_[i] = 0.;
-
-	// Lagrange dual
-	if (_u_) delete [] _u_;
-	_u_ = new double [_n_];
-	for (size_t i = 0; i < _n_; i++) _u_[i] = 0.;
-
-	// lower bound onstraint
-	if (_apply_lower_bound_) {
-		// slack vector for bound constraint
-		if (_t_) delete [] _t_;
-		_t_ = new double [_n_];
-		for (size_t i = 0; i < _n_; i++) _t_[i] = 0.;
-		// Lagrange dual
-		if (_v_) delete [] _v_;
-		_v_ = new double [_n_];
-		for (size_t i = 0; i < _n_; i++) _v_[i] = 0.;
-	}
-}
-
-// update bx and by:
-// bx = X.T * f + mu * (t + v)[1:M], by = Y.T * g + mu * (t + v)[M:2M]
-void
-mADMM::_update_bx_ ()
-{
-	// bx = X.T * f + mu * (s + u)[1:M]
-	if (_bx_ == NULL) _bx_ = new double [_size2_];
-	if (_cx_ == NULL) {
-		_cx_ = new double [_size2_];
-		dgemv_ (&trans, &_size1_mag_, &_size2_, &done, _X_, &_size1_mag_, _f_, &ione, &dzero, _cx_, &ione);
-	}
-	for (size_t i = 0; i < _size2_; i++) _bx_[i] = _cx_[i] + _mu_ * (_s_[i] + _u_[i]);
-	if (_apply_lower_bound_) {
-		for (size_t i = 0; i < _size2_; i++) _bx_[i] += _nu_ * (_t_[i] + _v_[i]);
-	}
-}
-
-void
-mADMM::_update_by_ ()
-{
-	// by = Y.T * g + mu * (s + u)[M:2*M]
-	if (_by_ == NULL) _by_ = new double [_size2_];
-	if (_cy_ == NULL) {
-		_cy_ = new double [_size2_];
-		dgemv_ (&trans, &_size1_grv_, &_size2_, &done, _Y_, &_size1_grv_, _g_, &ione, &dzero, _cy_, &ione);
-	}
-	for (size_t i = 0; i < _size2_; i++) _by_[i] = _cy_[i] + _mu_ * (_s_[i + _size2_] + _u_[i + _size2_]);
-	if (_apply_lower_bound_) {
-		for (size_t i = 0; i < _size2_; i++) _by_[i] += _nu_ * (_t_[i + _size2_] + _v_[i + _size2_]);
-	}
-}
-
-void
-mADMM::_update_b_ ()
-{
-	_update_bx_ ();
-	_update_by_ ();
-}
-
-// update zeta:
-// rho  = (I - X.T * CXi * X) * bx / (mu + nu) 
-// beta = (I - Y.T * CYi * Y) * by / (mu + nu)
-// CXi = (X * X.T + mu * I)^-1, CYi = (Y * Y.T + (mu + nu) * I)^-1
-void
-mADMM::_update_zeta_ ()
-{
-	if (_CXi_ == NULL || _CYi_ == NULL) _calc_Ci_ ();
-
-	if (_beta_) {
-		for (size_t i = 0; i < _size2_; i++) _beta_prev_[i] = _beta_[i];
-		delete [] _beta_;
-	}
-	if (_rho_) {
-		for (size_t i = 0; i < _size2_; i++) _rho_prev_[i] = _rho_[i];
-		delete [] _rho_;
-	}
-	// beta = (bx - X.T * CXi * X * bx) / (mu + nu)
-	_beta_ = _eval_beta_SMW_ (_mu_ + _nu_, _size1_mag_, _size2_, _X_, _CXi_, _bx_);
-	// rho  = (by - Y.T * CYi * Y * by) / (mu + nu)
-	_rho_  = _eval_rho_SMW_ (_mu_ + _nu_, _size1_grv_, _size2_, _Y_, _CYi_, _by_);
-}
-
-// update s:
-// s[gk] = C1 * (1 + lambda1 / (mu * || q[gk] ||))_+ * q[gk], q = zeta - v
-void
-mADMM::_update_s_ ()
-{
-	double	ck = _mu_ / (_mu_ + _lambda2_);
-
-#pragma omp parallel for
-	for (size_t j = 0; j < _size2_; j++) {
-
-		double	q1 = _beta_[j] - _u_[j];
-		double	q2 = _rho_[j] - _u_[j + _size2_];
-		double	qnrm = sqrt (pow (q1, 2.) + pow (q2, 2.));
-		double	l = _lambda1_ / (_mu_ * qnrm);
-		double	cj = _soft_threshold_ (1., l);
-		_s_[j] = ck * q1 * cj;
-		_s_[j + _size2_] = ck * q2 * cj;
-	}
-}
-
-// update t:
-// t = max (lower, zeta - v)
-void
-mADMM::_update_t_ ()
-{
-#pragma omp parallel for
-	for (size_t j = 0; j < _size2_; j++) {
-		double	lbj = _lower_[j];
-		double	qbj = _beta_[j] - _v_[j];
-		_t_[j] = (lbj < qbj) ? qbj : lbj;
-		double	lrj = _lower_[j + _size2_];
-		double	qrj = _rho_[j] - _v_[j + _size2_];
-		_t_[j + _size2_] = (lrj < qrj) ? qrj : lrj;
-	}
-}
-
-// update u: u = u + mu * (s - zeta)
-void
-mADMM::_update_u_ ()
-{
-#pragma omp parallel for
-	for (size_t j = 0; j < _size2_; j++) {
-		_u_[j] += _mu_ * (_s_[j] - _beta_[j]);
-		_u_[j + _size2_] += _mu_ * (_s_[j + _size2_] - _rho_[j]); 
-	}
-}
-
-// update u: u = u + mu * (s - zeta)
-void
-mADMM::_update_v_ ()
-{
-#pragma omp parallel for
-	for (size_t j = 0; j < _size2_; j++) {
-		_v_[j] += _nu_ * (_t_[j] - _beta_[j]);
-		_v_[j + _size2_] += _nu_ * (_t_[j + _size2_] - _rho_[j]); 
-	}
-}
-
-// perform ADMM iteration at once
-void
-mADMM::_one_cycle_ ()
-{
-	_update_b_ ();
-	_update_zeta_ ();
-	_update_s_ ();
-	_update_u_ ();
-
-	if (_apply_lower_bound_) {
-		_update_t_ ();
-		_update_v_ ();
-	}
-}
-
-double
-mADMM::_eval_residuals_ ()
-{
-	double	*dt = new double [_n_];
-	double	*dz = new double [_n_];
-
-#pragma omp parallel for
-	for (size_t j = 0; j < _size2_; j++) {
-		// dt = s - zeta
-		dt[j] = _s_[j] - _beta_[j];
-		dt[j + _size2_] = _s_[j + _size2_] - _rho_[j];
-		// dz = mu * (zeta - zeta_prev)
-		dz[j] = _mu_ * (_beta_[j] - _beta_prev_[j]);
-		dz[j + _size2_] = _mu_ * (_rho_[j] - _rho_prev_[j]);
-	}
-
-	double	dr1 = dnrm2_ (&_n_, dt, &ione) / sqrt ((double) _n_);
-	delete [] dt;
-	double	dr2 = dnrm2_ (&_n_, dz, &ione) / sqrt ((double) _n_);
-	delete [] dz;
-
-	return (dr1 >= dr2) ? dr1 : dr2;
-}
-
-// compute CXi and CYi:
-// CXi = (X.T * X + (mu + nu) * I)^-1, CYi = (Y.T * Y + (mu + nu) * I)^-1
-void
-mADMM::_calc_Ci_ ()
-{
-	if (_CXi_) delete [] _CXi_;
-	_CXi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_mag_, _size2_, _X_);
-	if (_CYi_) delete [] _CYi_;
-	_CYi_ = _Cinv_SMW_ (_mu_ + _nu_, _size1_grv_, _size2_, _Y_);
-}
-
-// compute beta = (I - X.T * CXi * X) * bx / coef
-// interface of _eval_zeta_SMW_ ()
-double *
-mADMM::_eval_beta_SMW_ (double coef, size_t m, size_t n, double *X, double *CXi, double *bx)
-{
-	return _eval_zeta_SMW_ (coef, m, n, X, CXi, bx);
-}
-
-// compute rho = (I - Y.T * CYi * Y) * by / coef
-// interface of _eval_zeta_SMW_ ()
-double *
-mADMM::_eval_rho_SMW_ (double coef, size_t m, size_t n, double *Y, double *CYi, double *by)
-{
-	return _eval_zeta_SMW_ (coef, m, n, Y, CYi, by);
-}
-
-// soft threshold (overwrited): S(x, l) = max(x - l, 0)
-double
-mADMM::_soft_threshold_ (double gamma, double lambda)
-{
-	double	ci = gamma - lambda;
-	return (ci >= 0.) ? ci : 0.;
-}
-
-/*** private methods ***/
-void
-mADMM::__init__ ()
-{
-
-	_size1_mag_ = 0;
-	_size1_grv_ = 0;
-
-	_f_ = NULL;
-	_g_ = NULL;
-
-	_X_ = NULL;
-	_Y_ = NULL;
-
-	_wx_ = NULL;
-	_wy_ = NULL;
-
-	_beta_ = NULL;
-	_rho_ = NULL;
-
-	_beta_prev_ = NULL;
-	_rho_prev_ = NULL;
-
-	_cx_ = NULL;
-	_cy_ = NULL;
-
-	_bx_ = NULL;
-	_by_ = NULL;
-
-	_CXi_ = NULL;
-	_CYi_ = NULL;
-
-}
+void		dgemv_ (char *trans, size_t *m, size_t *n, double *alpha, double *A, size_t *ldA,
+			  double *x, size_t *incx, double *beta, double *y, size_t *incy);
 
 #ifdef __cplusplus
 	}
 #endif // __cplusplus
 
+/*** public methods ***/
+// Contructor
+mADMM::mADMM (double lambda1, double lambda2, double mu)
+{
+	mu_ = mu;
+	set_regularization_parameters (lambda1, lambda2);
+}
+
+// Destructor
+// Destructor
+mADMM::~mADMM ()
+{
+	delete [] f_;
+	delete [] g_;
+	delete [] X_;
+	delete [] Y_;
+	delete [] wx_;
+	delete [] wy_;
+	delete [] beta_;
+	delete [] rho_;
+	delete [] beta_prev_;
+	delete [] rho_prev_;
+	delete [] cx_;
+	delete [] cy_;
+	delete [] bx_;
+	delete [] by_;
+	delete [] CXi_;
+	delete [] CYi_;
+}
+
+// Sets up the optimization problem.
+void
+mADMM::setup_problem (size_t size1_mag, size_t size1_grv, size_t size2,
+				double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower)
+{
+	if (size1_mag == 0 || size1_grv == 0)
+		throw std::runtime_error ("Problem dimension error: The number of data points cannot be zero.");
+	if (size2 == 0)
+		throw std::runtime_error ("Model dimension error: The number of grid cells cannot be zero.");
+
+	size1_mag_ = size1_mag;
+	size1_grv_ = size1_grv;
+	size2_ = size2;
+
+	m_ = size1_mag_ + size1_grv_;
+	n_ = 2 * size2_;
+
+	f_ = f;
+	g_ = g;
+
+	X_ = X;
+	Y_ = Y;
+
+	if (normalize) {
+		if (wx_) delete [] wx_;
+		wx_ = normalize_matrix (size1_mag_, size2_, X_);
+		if (wy_) delete [] wy_;
+		wy_ = normalize_matrix (size1_grv_, size2_, Y_);
+	}
+
+	if (nu > DBL_EPSILON && lower != NULL) {
+		nu_ = nu;
+		lower_ = new double [n_];
+		// Copy lower bounds and apply normalization weights.
+		for (size_t j = 0; j < size2_; j++) {
+			lower_[j] = lower[j] * wx_[j];
+			lower_[j + size2_] = lower[j + size2_] * wy_[j];
+		}
+		apply_lower_bound_ = true;
+	}
+}
+
+
+// Returns the solution vector beta, un-normalizing if necessary.
+double *
+mADMM::get_magnetization ()
+{
+	if (!beta_) return NULL;
+
+	double	*beta = new double [size2_];
+	for (size_t j = 0; j < size2_; j++) beta[j] = beta_[j];
+
+	if (wx_ != NULL) {
+		for (size_t j = 0; j < size2_; j++) beta[j] /= wx_[j];
+	}
+
+	return beta;
+}
+
+// Returns the solution vector rho, un-normalizing if necessary.
+double *
+mADMM::get_density ()
+{
+	if (!rho_) return NULL;
+
+	double	*rho = new double [size2_];
+	for (size_t j = 0; j < size2_; j++) rho[j] = rho_[j];
+
+	if (wy_ != NULL) {
+		for (size_t j = 0; j < size2_; j++) rho[j] /= wy_[j];
+	}
+
+	return rho;
+}
+
+// Solves the problem by running ADMM iterations.
+size_t
+mADMM::solve (const double tol, const size_t maxiter, bool verbos)
+{
+	// Initialize ADMM variables zeta (beta, rho), s, and u to zero.
+	initialize_variables ();
+
+	// tol: convergence tolerance, maxiter: maximum number of iterations
+	size_t	k;
+	for (k = 0; k < maxiter; k++) {
+
+		iterate ();
+
+		residual_ = eval_residuals ();
+		if (verbos && k % 100 == 0)
+			fprintf (stderr, "residual[%ld] = %.4e / %.4e\n", k, residual_, tol);
+		if (residual_ < tol) break;
+	}
+	return k;
+}
+
+// Reconstructs the data vectors f and g using the final solution.
+void
+mADMM::recover_data (double *f, double *g)
+{
+	dgemv_ (&notrans, &size1_mag_, &size2_, &done, X_, &size1_mag_, beta_, &ione, &dzero, f, &ione);
+	dgemv_ (&notrans, &size1_grv_, &size2_, &done, Y_, &size1_grv_, rho_,  &ione, &dzero, g, &ione);
+	return;
+}
+
+/*** protected methods ***/
+// Allocates and initializes ADMM variables.
+// If bound constraints are active, t and v are also initialized.
+void
+mADMM::initialize_variables ()
+{
+	residual_ = 0.;
+
+	// Allocate and initialize variables.
+	// Primary variable for magnetization
+	if (beta_) delete [] beta_;
+	beta_ = new double [size2_];
+	for (size_t i = 0; i < size2_; i++) beta_[i] = 0.;
+
+	// Primary variable for density
+	if (rho_) delete [] rho_;
+	rho_ = new double [size2_];
+	for (size_t i = 0; i < size2_; i++) rho_[i] = 0.;
+
+	// Store previous iteration's beta for residual calculation
+	if (beta_prev_) delete [] beta_prev_;
+	beta_prev_ = new double [size2_];
+	for (size_t i = 0; i < size2_; i++) beta_prev_[i] = 0.;
+
+	// Store previous iteration's rho for residual calculation
+	if (rho_prev_) delete [] rho_prev_;
+	rho_prev_ = new double [size2_];
+	for (size_t i = 0; i < size2_; i++) rho_prev_[i] = 0.;
+
+	// Slack variable for the separable penalty term
+	if (s_) delete [] s_;
+	s_ = new double [n_];
+	for (size_t i = 0; i < n_; i++) s_[i] = 0.;
+
+	// Lagrangian dual variable for the constraint zeta = s
+	if (u_) delete [] u_;
+	u_ = new double [n_];
+	for (size_t i = 0; i < n_; i++) u_[i] = 0.;
+
+	// Variables for the lower bound constraint
+	if (apply_lower_bound_) {
+		// Slack variable for the bound constraint
+		if (t_) delete [] t_;
+		t_ = new double [n_];
+		for (size_t i = 0; i < n_; i++) t_[i] = 0.;
+		// Lagrangian dual variable for the constraint zeta = t
+		if (v_) delete [] v_;
+		v_ = new double [n_];
+		for (size_t i = 0; i < n_; i++) v_[i] = 0.;
+	}
+}
+
+// Updates the right-hand side vectors bx and by for the zeta-update step.
+// bx = X^T * f + mu * (s + u)[1:M] + nu * (t + v)[1:M]
+void
+mADMM::update_bx ()
+{
+	// bx = X^T * f + mu * (s + u)[1:M]
+	if (bx_ == NULL) bx_ = new double [size2_];
+	if (cx_ == NULL) {
+		cx_ = new double [size2_];
+		dgemv_ (&trans, &size1_mag_, &size2_, &done, X_, &size1_mag_, f_, &ione, &dzero, cx_, &ione);
+	}
+	for (size_t i = 0; i < size2_; i++) bx_[i] = cx_[i] + mu_ * (s_[i] + u_[i]);
+	if (apply_lower_bound_) {
+		for (size_t i = 0; i < size2_; i++) bx_[i] += nu_ * (t_[i] + v_[i]);
+	}
+}
+
+void
+mADMM::update_by ()
+{
+	// by = Y^T * g + mu * (s + u)[M+1:2M]
+	if (by_ == NULL) by_ = new double [size2_];
+	if (cy_ == NULL) {
+		cy_ = new double [size2_];
+		dgemv_ (&trans, &size1_grv_, &size2_, &done, Y_, &size1_grv_, g_, &ione, &dzero, cy_, &ione);
+	}
+	for (size_t i = 0; i < size2_; i++) by_[i] = cy_[i] + mu_ * (s_[i + size2_] + u_[i + size2_]);
+	if (apply_lower_bound_) {
+		for (size_t i = 0; i < size2_; i++) by_[i] += nu_ * (t_[i + size2_] + v_[i + size2_]);
+	}
+}
+
+void
+mADMM::update_b ()
+{
+	update_bx ();
+	update_by ();
+}
+
+// Updates zeta (beta and rho) using the Sherman-Morrison-Woodbury formula.
+// beta = (I - X^T * CXi * X) * bx / (mu + nu)
+// rho  = (I - Y^T * CYi * Y) * by / (mu + nu)
+// where CXi = (X * X^T + (mu + nu) * I)^-1
+// and   CYi = (Y * Y^T + (mu + nu) * I)^-1
+void
+mADMM::update_zeta ()
+{
+	if (CXi_ == NULL || CYi_ == NULL) compute_Ci ();
+
+	if (beta_) {
+		for (size_t i = 0; i < size2_; i++) beta_prev_[i] = beta_[i];
+		delete [] beta_;
+	}
+	if (rho_) {
+		for (size_t i = 0; i < size2_; i++) rho_prev_[i] = rho_[i];
+		delete [] rho_;
+	}
+	// beta = (bx - X^T * CXi * X * bx) / (mu + nu)
+	beta_ = eval_beta_using_SMW (mu_ + nu_, size1_mag_, size2_, X_, CXi_, bx_);
+	// rho  = (by - Y^T * CYi * Y * by) / (mu + nu)
+	rho_  = eval_rho_using_SMW (mu_ + nu_, size1_grv_, size2_, Y_, CYi_, by_);
+}
+
+// Updates the slack variable s via group soft-thresholding.
+// s_k = c * max(0, 1 - lambda1 / (mu * ||q_k||)) * q_k, where q = zeta - u
+void
+mADMM::update_s ()
+{
+	double	ck = mu_ / (mu_ + lambda2_);
+
+#pragma omp parallel for
+	for (size_t j = 0; j < size2_; j++) {
+
+		double	q1 = beta_[j] - u_[j];
+		double	q2 = rho_[j] - u_[j + size2_];
+		double	qnrm = sqrt (pow (q1, 2.) + pow (q2, 2.));
+		double	l = lambda1_ / (mu_ * qnrm);
+		double	cj = soft_threshold (1., l);
+		s_[j] = ck * q1 * cj;
+		s_[j + size2_] = ck * q2 * cj;
+	}
+}
+
+// Updates the slack variable t by projecting onto the lower bounds.
+// t = max(lower, zeta - v)
+void
+mADMM::update_t ()
+{
+#pragma omp parallel for
+	for (size_t j = 0; j < size2_; j++) {
+		double	lbj = lower_[j];
+		double	qbj = beta_[j] - v_[j];
+		t_[j] = (lbj < qbj) ? qbj : lbj;
+		double	lrj = lower_[j + size2_];
+		double	qrj = rho_[j] - v_[j + size2_];
+		t_[j + size2_] = (lrj < qrj) ? qrj : lrj;
+	}
+}
+
+// Updates the dual variable u.
+void
+mADMM::update_u ()
+{
+#pragma omp parallel for
+	for (size_t j = 0; j < size2_; j++) {
+		u_[j] += mu_ * (s_[j] - beta_[j]);
+		u_[j + size2_] += mu_ * (s_[j + size2_] - rho_[j]);
+	}
+}
+
+// Updates the dual variable v.
+void
+mADMM::update_v ()
+{
+#pragma omp parallel for
+	for (size_t j = 0; j < size2_; j++) {
+		v_[j] += nu_ * (t_[j] - beta_[j]);
+		v_[j + size2_] += nu_ * (t_[j + size2_] - rho_[j]);
+	}
+}
+
+// Performs one full ADMM iteration.
+void
+mADMM::iterate ()
+{
+	update_b ();
+	update_zeta ();
+	update_s ();
+	update_u ();
+
+	if (apply_lower_bound_) {
+		update_t ();
+		update_v ();
+	}
+}
+
+double
+mADMM::eval_residuals ()
+{
+	double	*dt = new double [n_];
+	double	*dz = new double [n_];
+
+#pragma omp parallel for
+	for (size_t j = 0; j < size2_; j++) {
+		// Primal residual term: dt = s - zeta
+		dt[j] = s_[j] - beta_[j];
+		dt[j + size2_] = s_[j + size2_] - rho_[j];
+		// Dual residual term: dz = mu * (zeta - zeta_prev)
+		dz[j] = mu_ * (beta_[j] - beta_prev_[j]);
+		dz[j + size2_] = mu_ * (rho_[j] - rho_prev_[j]);
+	}
+
+	double	dr1 = dnrm2_ (&n_, dt, &ione) / sqrt ((double) n_);
+	delete [] dt;
+	double	dr2 = dnrm2_ (&n_, dz, &ione) / sqrt ((double) n_);
+	delete [] dz;
+
+	return (dr1 >= dr2) ? dr1 : dr2;
+}
+
+// Computes the inverse matrices required for the SMW formula.
+// CXi = (X*X^T + (mu + nu)*I)^-1, CYi = (Y*Y^T + (mu + nu)*I)^-1
+void
+mADMM::compute_Ci ()
+{
+	if (CXi_) delete [] CXi_;
+	CXi_ = compute_Cinv_for_SMW (mu_ + nu_, size1_mag_, size2_, X_);
+	if (CYi_) delete [] CYi_;
+	CYi_ = compute_Cinv_for_SMW (mu_ + nu_, size1_grv_, size2_, Y_);
+}
+
+// Computes beta using the SMW identity.
+// This is a wrapper for the generic eval_zeta_using_SMW function.
+double *
+mADMM::eval_beta_using_SMW (double coef, size_t m, size_t n, double *X, double *CXi, double *bx)
+{
+	return eval_zeta_using_SMW (coef, m, n, X, CXi, bx);
+}
+
+// Computes rho using the SMW identity.
+// This is a wrapper for the generic eval_zeta_using_SMW function.
+double *
+mADMM::eval_rho_using_SMW (double coef, size_t m, size_t n, double *Y, double *CYi, double *by)
+{
+	return eval_zeta_using_SMW (coef, m, n, Y, CYi, by);
+}
+
+// Soft-thresholding operator: S(x, l) = max(x - l, 0).
+double
+mADMM::soft_threshold (double gamma, double lambda)
+{
+	double	ci = gamma - lambda;
+	return (ci >= 0.) ? ci : 0.;
+}
