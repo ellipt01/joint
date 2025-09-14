@@ -42,7 +42,7 @@ void		dgemm_ (char *transa, char *transb, size_t *m, size_t *n, size_t *k, doubl
 ADMM::ADMM (double lambda1, double lambda2, double mu)
 {
 	mu_ = mu;
-	set_regularization_parameters (lambda1, lambda2);
+	setLambdas (lambda1, lambda2);
 }
 
 // Destructor
@@ -64,7 +64,7 @@ ADMM::~ADMM ()
 
 // Sets the regularization parameters.
 void
-ADMM::set_regularization_parameters (double lambda1, double lambda2)
+ADMM::setLambdas (double lambda1, double lambda2)
 {
 	lambda1_ = lambda1;
 	lambda2_ = lambda2;
@@ -72,7 +72,7 @@ ADMM::set_regularization_parameters (double lambda1, double lambda2)
 
 // Sets up the problem with the given data and parameters.
 void
-ADMM::setup_problem (size_t size1, size_t size2, double *f, double *X, bool normalize, double nu, double *lower)
+ADMM::setupProblem (size_t size1, size_t size2, double *f, double *X, bool normalize, double nu, double *lower)
 {
 	size1_ = size1;
 	size2_ = size2;
@@ -96,7 +96,7 @@ ADMM::setup_problem (size_t size1, size_t size2, double *f, double *X, bool norm
 
 // Retrieves the model vector (zeta).
 double *
-ADMM::get_model_vector ()
+ADMM::getModel ()
 {
 	if (!zeta_) return NULL;
 
@@ -133,7 +133,7 @@ ADMM::solve (const double tol, const size_t maxiter, bool verbos)
 
 // Recovers the input data vector `f` from the solution `zeta`.
 double *
-ADMM::recover_data ()
+ADMM::recoverData ()
 {
 	double	*f = new double [size1_];
 	// f = X * zeta

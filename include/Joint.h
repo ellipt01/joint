@@ -111,41 +111,39 @@ public:
 	~Joint ();
 
 	// Accessor methods for parameters
-	double	get_alpha () const { return alpha_; }
-	double	get_lambda () const { return lambda_; }
+	double	getAlpha () const { return alpha_; }
+	double	getLambda () const { return lambda_; }
 
-	double	get_lambda1 () const { return lambda1_; }
-	double	get_lambda2 () const { return lambda2_; }
+	double	getLambda1 () const { return lambda1_; }
+	double	getLambda2 () const { return lambda2_; }
 
-	double	get_tolerance () const { return tolerance_; }
-	size_t	get_max_iterations () const { return maxiter_; }
+	double	getTolerance () const { return tolerance_; }
+	size_t	getMaxIterations () const { return maxiter_; }
 
 	// Displays program usage instructions.
-	void		print_usage ();
+	void		printUsage ();
 
 	// Parses command-line arguments and reads the settings file to configure the inversion.
 	void		prepare (int argc, char **argv);
 
 	// Executes the joint inversion algorithm.
 	size_t	start (bool normalize);
-	size_t	restart ();
 
 	// Returns the final residual of the ADMM solver.
-	double	get_residual ();
+	double	getResidual ();
 
 	// Recovers the data anomalies using the computed model.
-	void		recover_data (double *f, double *g);
+	double	*recoverData (FieldType type);
 
 	// Returns the resulting model vectors from the inversion.
-	double	*get_magnetization_model (); // = zeta[:m]
-	double	*get_gravity_model ();  // = zeta[m:]
+	double	*getModel (ModelType type);
 
 	// Prints the settings parsed from command-line options and the settings file.
-	void		print_command_line_options (FILE *stream) const;
-	void		print_settings (FILE *stream) const;
+	void		printCommandLineOptions (FILE *stream) const;
+	void		printSettings (FILE *stream) const;
 
 	// Exports all primary results (models, recovered data) to output files.
-	void		export_results ();
+	void		exportResults ();
 
 protected:
 	// Parses command-line arguments.

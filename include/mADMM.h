@@ -1,6 +1,16 @@
 #ifndef _MADMM_H_
 #define _MADMM_H_
 
+enum class FieldType {
+	Magnetic,
+	Gravity
+};
+
+enum class ModelType {
+	Magnetic,
+	Gravity
+};
+
 /*
  * mADMM: A subclass of ADMM that extends the algorithm for joint magnetic and gravity data inversion.
  *
@@ -82,21 +92,19 @@ public:
 	mADMM (double lambda1, double lambda2, double mu);
 	~mADMM ();
 
-	double	*get_magnetization (); // Get the magnetization model vector
-	double	*get_density (); // Get the density model vector
+	double	*getModel (ModelType type);
 
-	double	*get_magnetic_depth_weights () { return wx_; } // Returns the depth weighting vector for the magnetic kernel
-	double	*get_gravity_depth_weights () { return wy_; } // Returns the depth weighting vector for the gravity kernel
+	double	*getDepthWeights (ModelType type);
 
-	void		setup_problem (size_t size1_mag, size_t size1_grv, size_t size2,
+	void		setupProblem (size_t size1_mag, size_t size1_grv, size_t size2,
 			 		  double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower);
 
 	// Solves the problem by running ADMM iterations until convergence.
 	size_t	solve (const double tol, const size_t maxiter, bool verbos = false);
 
-	double	get_residual () { return residual_; }
+	double	getResidual () const { return residual_; }
 
-	void		recover_data (double *f, double *g);
+	double	*recoverData (FieldType type);
 
 protected:
 	void		initialize_variables (); // Initializes all ADMM variables to zero.
@@ -112,6 +120,9 @@ protected:
 	void		update_v (); // Updates the Lagrange dual variable for the lower bound constraint.
 
 	void		iterate ();	// Performs a single full cycle of ADMM updates.
+
+	double	*get_magnetization (); // Get the magnetization model vector
+	double	*get_density (); // Get the density model vector
 
 	double	eval_residuals (); // Evaluates the maximum of primal and dual residuals for convergence check.
 

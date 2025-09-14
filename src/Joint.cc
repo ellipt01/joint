@@ -22,7 +22,7 @@ static double	done = 1.;
 static double	dmone = -1.;
 
 size_t	idamax_ (size_t *n, double *x, size_t *inc);
-void	dscal_ (size_t *n, double *scale, double *x, size_t *inc);
+void		dscal_ (size_t *n, double *scale, double *x, size_t *inc);
 
 #ifdef __cplusplus
 	}
@@ -53,7 +53,7 @@ Joint::~Joint ()
 }
 
 void
-Joint::print_usage ()
+Joint::printUsage ()
 {
 	fprintf (stderr, "=====   PROGRAM   =====\n");
 	fprintf (stderr, "%s version %s\n\n", toolname_, _version_info_);
@@ -118,7 +118,7 @@ Joint::start (bool normalize)
 
 	if (!admm_) {
 		admm_ = new mADMM (lambda1_, lambda2_, mu_);
-		admm_->setup_problem (size1_mag_, size1_grv_, size2_, f_, g_, K_, G_, normalize, nu_, lower_);
+		admm_->setupProblem (size1_mag_, size1_grv_, size2_, f_, g_, K_, G_, normalize, nu_, lower_);
 	}
 	// export weight for kernel matrix
 	export_depth_weights ();
@@ -127,60 +127,57 @@ Joint::start (bool normalize)
 
 // return residual (max of primal and dual residuals)
 double
-Joint::get_residual ()
+Joint::getResidual ()
 {
 	if (!admm_) throw std::runtime_error ("admm object has not yet been instantiated. Call start() first.");
-	return admm_->get_residual ();
+	return admm_->getResidual ();
 }
 
 // recover magnetic and gravity anomalies
 // and store them into f and g
-void
-Joint::recover_data (double *f, double *g)
+double *
+Joint::recoverData (FieldType type)
 {
-	admm_->recover_data (f, g);
-	double	scale = 1. / scale_;
-	dscal_ (&size1_grv_, &scale, g, &ione);
+	double	*ret = admm_->recoverData (type);
+	if (type == FieldType::Gravity) {
+		double	scale = 1. / scale_;
+		dscal_ (&size1_grv_, &scale, ret, &ione);
+	}
+	return ret;
 }
 
-// get instance of magnetization model
+// get instance of magnetization or gravity model
 // depth weighting is removed
 double *
-Joint::get_magnetization_model ()
+Joint::getModel (ModelType type)
 {
-	double	*beta_ = admm_->get_magnetization ();
-	double	*beta = new double [size2_];
-	for (size_t j = 0; j < size2_; j++) beta[j] = beta_[j];
-	return beta;
-}
-
-// get instance of density model
-// depth weighting is removed
-double *
-Joint::get_gravity_model ()
-{
-	double	*rho_ = admm_->get_density ();
-	double	*rho = new double [size2_];
-	for (size_t j = 0; j < size2_; j++) rho[j] = rho_[j];
-	double	scale = 1. / scale_;
-	dscal_ (&size2_, &scale, rho, &ione);
-	return rho;
+	double	*model = admm_->getModel (type);
+	if (type == ModelType::Gravity) {
+		double	scale = 1. / scale_;
+		dscal_ (&size2_, &scale, model, &ione);
+	}
+	return model;
 }
 
 // fwrite settings specified by inline options
 void
-Joint::print_command_line_options (FILE *stream) const
+Joint::printCommandLineOptions (FILE *stream) const
 {
 	fprintf (stream, "\n");
-	fprintf (stream, "input file:\t%s\t%s\n", fn_mag_, fn_grv_);
+	fprintf (stream, "input file:\t%s,%s\n", fn_mag_, fn_grv_);
 	if (fn_ter_) fprintf (stream, "terrain file:\t%s\n", fn_ter_); 
-	if (alpha_ > 0.) fprintf (stream, "alpha,lambda:\t%.4e,%.4e\n", alpha_, lambda_);
-	else fprintf (stream, "lambda1,lambda2:\t%.4e,%.4e\n", lambda1_, lambda2_);
+	if (alpha_ > 0.) {
+		fprintf (stream, "alpha:\t%.2e\n", alpha_);
+		fprintf (stream, "lambda:\t%.2e\n", lambda_);
+	} else {
+		fprintf (stream, "lambda1:\t%.2e\n", lambda1_);
+		fprintf (stream, "lambda2:\t%.2e\n", lambda2_);
+	}
 }
 
 // fwrite setting specified by settings file
 void
-Joint::print_settings (FILE *stream) const
+Joint::printSettings (FILE *stream) const
 {
 	fprintf (stream, "\n");
 	fprintf (stream, "number of grid:\t%ld/%ld/%ld\n", nx_, ny_, nz_);
@@ -196,7 +193,7 @@ Joint::print_settings (FILE *stream) const
 
 // export calculation results
 void
-Joint::export_results ()
+Joint::exportResults ()
 {
 	FILE *fp;
 
@@ -207,21 +204,19 @@ Joint::export_results ()
 	write_model_to_file (fp);
 	fclose (fp);
 
-	double	*fr = new double [size1_mag_];
-	double	*gr = new double [size1_grv_];
-
 	// recover input magnetic and gravity anomalies
-	recover_data (fr, gr);
+	double	*fr = recoverData (FieldType::Magnetic);
+	double	*gr = recoverData (FieldType::Gravity);
 
-	fp = fopen ("recover_mag.data", "w");
-	if (!fp) throw std::runtime_error ("cannot open file recover_mag.data");
+	fp = fopen ("recovered_mag.data", "w");
+	if (!fp) throw std::runtime_error ("cannot open file recovered_mag.data");
 
 	fwrite_data_array_with_data (fp, magdata_, fr, "%.4f\t%.4f\t%.4f\t%.4f");
 	delete [] fr;
 	fclose (fp);
 
-	fp = fopen ("recover_grv.data", "w");
-	if (!fp) throw std::runtime_error ("cannot open file recover_grv.data");
+	fp = fopen ("recovered_grv.data", "w");
+	if (!fp) throw std::runtime_error ("cannot open file recovered_grv.data");
 
 	fwrite_data_array_with_data (fp, grvdata_, gr, "%.4f\t%.4f\t%.4f\t%.4f");
 	delete [] gr;
@@ -235,10 +230,10 @@ Joint::export_results ()
 void
 Joint::parse_command_line (int argc, char **argv)
 {
-	bool	fn_mag_specified = false;
-	bool	fn_grv_specified = false;
-	bool	lambda_specified = false;
-	bool	alpha_specified = false;
+	bool		fn_mag_specified = false;
+	bool		fn_grv_specified = false;
+	bool		lambda_specified = false;
+	bool		alpha_specified = false;
 
 	double	log10_lambda, log10_lambda1, log10_lambda2;
 
@@ -288,7 +283,7 @@ Joint::parse_command_line (int argc, char **argv)
 				break;
 
 			case 'h':
-				print_usage ();
+				printUsage ();
 				exit (1);
 
 			case '?':
@@ -469,8 +464,8 @@ Joint::write_model_to_file (FILE *fp)
 	if (magker_ == NULL) throw std::runtime_error ("magnetic kernel is not specified. Call set_mag()");
 	if (grvker_ == NULL) throw std::runtime_error ("gravity kernel is not specified. Call set_grv()");
 
-	double	*beta = get_magnetization_model ();
-	double	*rho = get_gravity_model ();
+	double	*beta = getModel (ModelType::Magnetic);
+	double	*rho  = getModel (ModelType::Gravity);
 
 	grid		*grd = magker_->get_grid ();
 	vector3d	*pos = vector3d_new (0., 0., 0.);
@@ -483,6 +478,7 @@ Joint::write_model_to_file (FILE *fp)
 	delete [] rho;
 
 #ifdef DEBUG
+
 	FILE	*fp_grd = fopen ("grid.data", "w");
 	if (fp) {
 		fwrite_grid (fp_grd, grd);
@@ -499,13 +495,13 @@ Joint::export_depth_weights ()
 {
 	FILE	*fp = fopen ("wx.vec", "w");
 	if (fp) {
-		double	*wx = admm_->get_magnetic_depth_weights ();
+		double	*wx = admm_->getDepthWeights (ModelType::Magnetic);
 		for (size_t j = 0; j < size2_; j++) fprintf (fp, "%.8e\n", wx[j]);
 		fclose (fp);
 	}
 	fp = fopen ("wy.vec", "w");
 	if (fp) {
-		double	*wy = admm_->get_gravity_depth_weights ();
+		double	*wy = admm_->getDepthWeights (ModelType::Gravity);
 		for (size_t j = 0; j < size2_; j++) fprintf (fp, "%.8e\n", wy[j]);
 		fclose (fp);
 	}

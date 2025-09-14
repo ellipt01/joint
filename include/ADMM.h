@@ -64,24 +64,24 @@ public:
 	ADMM (double lambda1, double lambda2, double mu);
 	~ADMM ();
 
-	// get model vector zeta
-	double	*get_model_vector ();
+	// Set regulatization parameters
+	void		setLambdas (double lambda1, double lambda2);
+	void		setupProblem (size_t size1, size_t size2, double *f, double *X, bool normalize, double nu = 0., double *lower = NULL);
 
-	// get depth weightings
-	double	*get_depth_weights () { return w_; } // Returns the weighting vector
+	// Get model vector zeta
+	double	*getModel ();
 
-	// set regulatization parameters
-	void		set_regularization_parameters (double lambda1, double lambda2);
-	void		setup_problem (size_t size1, size_t size2, double *f, double *X, bool normalize, double nu = 0., double *lower = NULL);
+	// Get depth weightings
+	double	*getDepthWeights () { return w_; } // Returns the depth weighting vector
 
-	// solve problem by running ADMM iteration until model converged
+	// Solve problem by running ADMM iteration until model converged
 	size_t	solve (const double tol, const size_t maxiter, bool verbos = false);
 
-	// get residual
-	double	get_residual () { return residual_; }
+	// Get residual
+	double	getResidual () const { return residual_; }
 
-	// recover the input data
-	double	*recover_data ();
+	// Recover the input data
+	double	*recoverData ();
 
 protected:
 	// Initializes zeta, s, and u to default values

@@ -14,20 +14,20 @@ main (int argc, char **argv)
 
 	try {
 		joint.prepare (argc, argv);
-	} catch (std::runtime_error e) {
+	} catch (const std::exception &e) {
 		std::cerr << e.what () << std::endl;
-		joint.print_usage ();
+		joint.printUsage ();
 		exit (1);
 	}
 
-	joint.print_command_line_options (stderr);
-	joint.print_settings (stderr);
+	joint.printCommandLineOptions (stderr);
+	joint.printSettings (stderr);
 
 	try {
 		size_t	niter = joint.start (true);
-		std::cerr << "number of iterations = " << niter << " / " << joint.get_max_iterations () << std::endl;
-		joint.export_results ();
-	} catch (std::runtime_error e) {
+		std::cerr << "number of iterations = " << niter << " / " << joint.getMaxIterations () << std::endl;
+		joint.exportResults ();
+	} catch (const std::exception &e) {
 		std::cerr << "ERROR: " << ": " << e.what () << std::endl;
 		exit (1);
 	}

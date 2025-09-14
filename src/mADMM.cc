@@ -26,11 +26,12 @@ void		dgemv_ (char *trans, size_t *m, size_t *n, double *alpha, double *A, size_
 #endif // __cplusplus
 
 /*** public methods ***/
+
 // Contructor
 mADMM::mADMM (double lambda1, double lambda2, double mu)
 {
 	mu_ = mu;
-	set_regularization_parameters (lambda1, lambda2);
+	setLambdas (lambda1, lambda2);
 }
 
 // Destructor
@@ -54,7 +55,7 @@ mADMM::~mADMM ()
 
 // Sets up the optimization problem.
 void
-mADMM::setup_problem (size_t size1_mag, size_t size1_grv, size_t size2,
+mADMM::setupProblem (size_t size1_mag, size_t size1_grv, size_t size2,
 				double *f, double *g, double *X, double *Y, bool normalize, double nu, double *lower)
 {
 	if (size1_mag == 0 || size1_grv == 0)
@@ -94,37 +95,25 @@ mADMM::setup_problem (size_t size1_mag, size_t size1_grv, size_t size2,
 	}
 }
 
-
-// Returns the solution vector beta, un-normalizing if necessary.
 double *
-mADMM::get_magnetization ()
+mADMM::getModel (ModelType type)
 {
-	if (!beta_) return NULL;
-
-	double	*beta = new double [size2_];
-	for (size_t j = 0; j < size2_; j++) beta[j] = beta_[j];
-
-	if (wx_ != NULL) {
-		for (size_t j = 0; j < size2_; j++) beta[j] /= wx_[j];
-	}
-
-	return beta;
+	double	*model = NULL;
+	if (type == ModelType::Magnetic) model = get_magnetization ();
+	else if (type == ModelType::Gravity) model = get_density ();
+	else throw std::runtime_error ("Invalid ModelType.");
+	return model;
 }
 
-// Returns the solution vector rho, un-normalizing if necessary.
-double *
-mADMM::get_density ()
+// Returns the depth weighting vector for the magnetic or gravity kernel
+double*
+mADMM::getDepthWeights (ModelType type)
 {
-	if (!rho_) return NULL;
-
-	double	*rho = new double [size2_];
-	for (size_t j = 0; j < size2_; j++) rho[j] = rho_[j];
-
-	if (wy_ != NULL) {
-		for (size_t j = 0; j < size2_; j++) rho[j] /= wy_[j];
-	}
-
-	return rho;
+	double *ret = NULL;
+	if (type == ModelType::Magnetic) ret = wx_;
+	else if (type == ModelType::Gravity) ret = wy_;
+	else throw std::runtime_error ("Invalid ModelType.");
+	return ret;
 }
 
 // Solves the problem by running ADMM iterations.
@@ -149,15 +138,23 @@ mADMM::solve (const double tol, const size_t maxiter, bool verbos)
 }
 
 // Reconstructs the data vectors f and g using the final solution.
-void
-mADMM::recover_data (double *f, double *g)
+double *
+mADMM::recoverData (FieldType type)
 {
-	dgemv_ (&notrans, &size1_mag_, &size2_, &done, X_, &size1_mag_, beta_, &ione, &dzero, f, &ione);
-	dgemv_ (&notrans, &size1_grv_, &size2_, &done, Y_, &size1_grv_, rho_,  &ione, &dzero, g, &ione);
-	return;
+	double	*ret;
+	if (type == FieldType::Magnetic) {
+		ret = new double [size1_mag_];
+		dgemv_ (&notrans, &size1_mag_, &size2_, &done, X_, &size1_mag_, beta_, &ione, &dzero, ret, &ione);
+	} else if (type == FieldType::Gravity) {
+		ret = new double [size1_grv_];
+		dgemv_ (&notrans, &size1_grv_, &size2_, &done, Y_, &size1_grv_, rho_,  &ione, &dzero, ret, &ione);
+	} else throw std::runtime_error ("Invalid FieldType.");	
+
+	return ret;
 }
 
 /*** protected methods ***/
+
 // Allocates and initializes ADMM variables.
 // If bound constraints are active, t and v are also initialized.
 void
@@ -343,6 +340,38 @@ mADMM::iterate ()
 		update_t ();
 		update_v ();
 	}
+}
+
+// Returns the solution vector beta, un-normalizing if necessary.
+double *
+mADMM::get_magnetization ()
+{
+	if (!beta_) return NULL;
+
+	double	*beta = new double [size2_];
+	for (size_t j = 0; j < size2_; j++) beta[j] = beta_[j];
+
+	if (wx_ != NULL) {
+		for (size_t j = 0; j < size2_; j++) beta[j] /= wx_[j];
+	}
+
+	return beta;
+}
+
+// Returns the solution vector rho, un-normalizing if necessary.
+double *
+mADMM::get_density ()
+{
+	if (!rho_) return NULL;
+
+	double	*rho = new double [size2_];
+	for (size_t j = 0; j < size2_; j++) rho[j] = rho_[j];
+
+	if (wy_ != NULL) {
+		for (size_t j = 0; j < size2_; j++) rho[j] /= wy_[j];
+	}
+
+	return rho;
 }
 
 double
