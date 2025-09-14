@@ -44,17 +44,17 @@ public:
 	~Kernel ();
 
 	// Sets the model space dimensions and creates the grid.
-	void		set_range (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz, const double ll = 0.);
+	void		setRange (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz, const double ll = 0.);
 	// Sets the surface topography for the model grid.
-	void		set_surface (double *zsurf) { grid_set_surface (grd_, zsurf); }
+	void		setSurface (double *zsurf) { grid_set_surface (grd_, zsurf); }
 	// Sets the observed measurement data.
-	void		set_data (data_array *array);
+	void		setData (data_array *array);
 
 	// Computes and returns the kernel matrix.
 	virtual double	*get () = 0;
 
 	// Returns a pointer to the grid object.
-	grid		*get_grid () { return grd_; }
+	grid		*getGrid () const { return grd_; }
 
 	// Writes the model data to a file stream.
 	void		fwrite (FILE *stream, double *model);

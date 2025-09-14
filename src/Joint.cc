@@ -400,7 +400,7 @@ void
 Joint::load_surface_topography (size_t c, double *zsurf)
 {
 	if (nx_ <= 0 || ny_ <= 0)
-		throw std::runtime_error ("range dose not specified. Call set_range() before.");
+		throw std::runtime_error ("range dose not specified. Call read_settings_file() before.");
 	if (nx_ * ny_ != c)
 		throw std::runtime_error ("dim(terrain) is not match with dim(f) and dim(g)");
 	zsurf_ = new double [c];
@@ -438,9 +438,9 @@ Joint::setup_magnetic_problem (double exf_inc, double exf_dec, double mgz_inc, d
 	f_ = data->data;
 
 	magker_ = new MagKernel (exf_inc, exf_dec, mgz_inc, mgz_dec);
-	magker_->set_range (nx_, ny_, nz_, xrange_, yrange_, zrange_, 1000.);
-	if (zsurf_) magker_->set_surface (zsurf_);
-	magker_->set_data (data);	
+	magker_->setRange (nx_, ny_, nz_, xrange_, yrange_, zrange_, 1000.);
+	if (zsurf_) magker_->setSurface (zsurf_);
+	magker_->setData (data);	
 	K_ = magker_->get ();
 }
 
@@ -451,9 +451,9 @@ Joint::setup_gravity_problem (data_array *data)
 	g_ = data->data;
 
 	grvker_ = new GravKernel ();
-	grvker_->set_range (nx_, ny_, nz_, xrange_, yrange_, zrange_, 1000.);
-	if (zsurf_) grvker_->set_surface (zsurf_);
-	grvker_->set_data (data);	
+	grvker_->setRange (nx_, ny_, nz_, xrange_, yrange_, zrange_, 1000.);
+	if (zsurf_) grvker_->setSurface (zsurf_);
+	grvker_->setData (data);	
 	G_ = grvker_->get ();
 }
 
@@ -467,7 +467,7 @@ Joint::write_model_to_file (FILE *fp)
 	double	*beta = getModel (ModelType::Magnetic);
 	double	*rho  = getModel (ModelType::Gravity);
 
-	grid		*grd = magker_->get_grid ();
+	grid		*grd = magker_->getGrid ();
 	vector3d	*pos = vector3d_new (0., 0., 0.);
 	for (size_t k = 0; k < grd->n; k++) {
 		grid_get_nth (grd, k, pos, NULL);

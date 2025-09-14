@@ -17,7 +17,7 @@ Kernel::~Kernel ()
 
 // Sets the model space dimensions and creates the grid.
 void
-Kernel::set_range (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz, const double ll)
+Kernel::setRange (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz, const double ll)
 {
 	nx_ = nx;
 	ny_ = ny;
@@ -29,7 +29,7 @@ Kernel::set_range (size_t nx, size_t ny, size_t nz, double *xx, double *yy, doub
 
 // Sets the observed measurement data.
 void
-Kernel::set_data (data_array *data)
+Kernel::setData (data_array *data)
 {
 	data_ = data;
 	m_ = data_->n;
@@ -69,9 +69,9 @@ double *
 MagKernel::get ()
 {
 	if (data_ == NULL)
-		throw std::runtime_error ("Observed data has not been set. Call set_data() before get().");
+		throw std::runtime_error ("Observed data has not been set. Call setData() before get().");
 	if (grd_ == NULL)
-		throw std::runtime_error ("Model range has not been set. Call set_range() before get().");
+		throw std::runtime_error ("Model range has not been set. Call setRange() before get().");
 	if (exf_ == NULL)
 		throw std::runtime_error ("External field direction has not been set.");
 	if (mgz_ == NULL)
@@ -96,9 +96,9 @@ double *
 GravKernel::get ()
 {
 	if (data_ == NULL)
-		throw std::runtime_error ("Observed data has not been set. Call set_data() before get().");
+		throw std::runtime_error ("Observed data has not been set. Call setData() before get().");
 	if (grd_ == NULL)
-		throw std::runtime_error ("Model range has not been set. Call set_range() before get().");
+		throw std::runtime_error ("Model range has not been set. Call setRange() before get().");
 
 	if (K_ != NULL) delete [] K_;
 	K_ = new double [m_ * n_];
