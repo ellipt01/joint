@@ -46,10 +46,6 @@ public:
 	// Returns a pointer to the grid object.
 	grid		*getGrid () const { return grd_; }
 
-	// Writes the model data to a file stream.
-	void		fwrite (FILE *stream, double *model);
-	void		fwrite (FILE *stream, double *model, const char *format);
-
 private:
 
 };

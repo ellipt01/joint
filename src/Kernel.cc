@@ -29,19 +29,6 @@ Kernel::setData (data_array *data)
 	m_ = data_->n;
 }
 
-// Writes the model data to a file stream.
-void
-Kernel::fwrite (FILE *stream, double *model)
-{
-	fwrite_grid_with_data (stream, grd_, model, "%.4e\t%.4e\t%.4e\t%.8e");
-}
-
-void
-Kernel::fwrite (FILE *stream, double *model, const char *format)
-{
-	fwrite_grid_with_data (stream, grd_, model, format);
-}
-
 /*** magnetic kernel ***/
 MagKernel::MagKernel (double inc, double dec)
 {
