@@ -16,18 +16,8 @@
 class Kernel {
 
 protected:
-	// Grid dimensions
-	size_t	nx_ = 0;
-	size_t	ny_ = 0;
-	size_t	nz_ = 0;
-
-	// Model space coordinates
-	double	*xx_ = NULL;
-	double	*yy_ = NULL;
-	double	*zz_ = NULL;
-
 	// Grid object representing the model space
-	grid			*grd_ = NULL;
+	grid		*grd_ = NULL;
 	// Observed data points
 	data_array	*data_ = NULL;
 

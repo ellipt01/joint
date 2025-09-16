@@ -8,9 +8,6 @@
 // Destructor
 Kernel::~Kernel ()
 {
-	delete [] xx_;
-	delete [] yy_;
-	delete [] zz_;
 	if (grd_) grid_free (grd_);
 	delete [] K_;
 }
@@ -19,11 +16,8 @@ Kernel::~Kernel ()
 void
 Kernel::setRange (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz, const double ll)
 {
-	nx_ = nx;
-	ny_ = ny;
-	nz_ = nz;
-	n_ = nx_ * ny_ * nz_;
-	grd_ = grid_new (nx_, ny_, nz_, xx, yy, zz);
+	grd_ = grid_new (nx, ny, nz, xx, yy, zz);
+	n_ = grd_->n;
 	if (ll > 0.) grid_stretch_at_edge (grd_, ll);
 }
 

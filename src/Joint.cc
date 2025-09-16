@@ -181,10 +181,12 @@ Joint::printSettings (FILE *stream) const
 {
 	fprintf (stream, "\n");
 	fprintf (stream, "number of grid:\t%ld/%ld/%ld\n", nx_, ny_, nz_);
-	fprintf (stream, "x,y,z range:\t%.4f/%.4f,%.4f/%.4f,%.4f/%.4f\n", 
-			 xrange_[0], xrange_[1], yrange_[0], yrange_[1], zrange_[0], zrange_[1]);
+	fprintf (stream, "range of the model space:\n");
+	fprintf (stream, "  x range:\t%.4f/%.4f\n", xrange_[0], xrange_[1]);
+	fprintf (stream, "  y range:\t%.4f/%.4f\n", yrange_[0], yrange_[1]);
+	fprintf (stream, "  z range:\t%.4f/%.4f\n", zrange_[0], zrange_[1]);
 	fprintf (stream, "exf:inc,dec:\t%.4f,%.4f\n", exf_inc_, exf_dec_);
-	fprintf (stream, "mag:inc,dec:\t%.4f,%.4f\n", mgz_inc_, mgz_dec_);
+	fprintf (stream, "mgz:inc,dec:\t%.4f,%.4f\n", mgz_inc_, mgz_dec_);
 	fprintf (stream, "tol,maxiter:\t%.2e,%ld\n", tolerance_, maxiter_);
 	fprintf (stream, "mu:\t\t%.4f\n", mu_);
 	if (nu_ > DBL_EPSILON)
