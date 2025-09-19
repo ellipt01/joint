@@ -59,6 +59,12 @@ protected:
 
 	double	residual_ = 0.;
 
+	// Temporal vectors used to update the model based on the SMW formula.
+	double	*tmp1_ = NULL;
+	double	*tmp2_ = NULL;
+	// A temporal vector used to evaluate residuals.
+	double	*tmp3_ = NULL;
+
 public:
 	ADMM () { }
 	ADMM (double lambda1, double lambda2, double mu);
@@ -118,7 +124,7 @@ protected:
 	// Computes inv(X * X.T + coef * I) for the Sherman-Morrison-Woodbury formula.
 	double	*compute_Cinv_for_SMW (double coef, size_t m, size_t n, double *K);
 	// Computes the zeta update step (I - X.T * Ci * X) * b / coef using the Sherman-Morrison-Woodbury formula.
-	double	*eval_zeta_using_SMW (double coef, size_t m, size_t n, double *K, double *Ci, double *b);
+	double	*update_zeta_using_SMW (double coef, size_t m, size_t n, double *K, double *Ci, double *b, double *y1, double *y2);
 
 private:
 };

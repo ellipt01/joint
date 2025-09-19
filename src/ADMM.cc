@@ -60,6 +60,9 @@ ADMM::~ADMM ()
 	delete [] c_;
 	delete [] b_;
 	delete [] Ci_;
+	delete [] tmp1_;
+	delete [] tmp2_;
+	delete [] tmp3_;
 }
 
 // Sets the regularization parameters.
@@ -184,6 +187,9 @@ ADMM::initialize_variables ()
 		for (size_t i = 0; i < size2_; i++) v_[i] = 0.;
 	}
 
+	if (tmp1_ == NULL) tmp1_ = new double [size1_];
+	if (tmp2_ == NULL) tmp2_ = new double [size1_];
+	if (tmp3_ == NULL) tmp3_ = new double [size2_];
 }
 
 // Computes the intermediate matrix `Ci` for the zeta update step.
@@ -224,7 +230,7 @@ ADMM::update_zeta ()
 		delete [] zeta_;
 	}
 	// zeta = (b - X.T * Ci * X * b) / (mu + nu)
-	zeta_ = eval_zeta_using_SMW (mu_ + nu_, size1_, size2_, X_, Ci_, b_);
+	zeta_ = update_zeta_using_SMW (mu_ + nu_, size1_, size2_, X_, Ci_, b_, tmp1_, tmp2_);
 }
 
 // Updates the slack variable `s`.
@@ -292,21 +298,19 @@ ADMM::iterate ()
 double
 ADMM::eval_residuals ()
 {
-	double	*dt = new double [size2_];
-	double	*dz = new double [size2_];
-
 #pragma omp parallel for
 	for (size_t j = 0; j < size2_; j++) {
 		// dt = s - zeta
-		dt[j] = s_[j] - zeta_[j];
-		// dz = mu * (zeta - zeta_prev)
-		dz[j] = mu_ * (zeta_[j] - zeta_prev_[j]);
+		tmp3_[j] = s_[j] - zeta_[j];
 	}
+	double	dr1 = dnrm2_ (&size2_, tmp3_, &ione) / sqrt ((double) size2_);
 
-	double	dr1 = dnrm2_ (&size2_, dt, &ione) / sqrt ((double) size2_);
-	delete [] dt;
-	double	dr2 = dnrm2_ (&size2_, dz, &ione) / sqrt ((double) size2_);
-	delete [] dz;
+#pragma omp parallel for
+	for (size_t j = 0; j < size2_; j++) {
+		// dz = mu * (zeta - zeta_prev)
+		tmp3_[j] = mu_ * (zeta_[j] - zeta_prev_[j]);
+	}
+	double	dr2 = dnrm2_ (&size2_, tmp3_, &ione) / sqrt ((double) size2_);
 
 	return (dr1 >= dr2) ? dr1 : dr2;
 }
@@ -389,26 +393,22 @@ ADMM::compute_Cinv_for_SMW (double coef, size_t m, size_t n, double *K)
 // The calculation is: zeta = [ I - (1 / coef) * K.T * Ci * K ] * b / coef,
 // where Ci = (K * K.T / coef + I)^-1.
 double *
-ADMM::eval_zeta_using_SMW (double coef, size_t m, size_t n, double *K, double *Ci, double *b)
+ADMM::update_zeta_using_SMW (double coef, size_t m, size_t n, double *K, double *Ci, double *b, double *y1, double *y2)
 {
 	if (coef <= 0.) throw std::runtime_error ("coef must be > 0.");
 
 	double	*zeta = new double [n];
 
 	// y1 = K * b
-	double	*y1 = new double [m];
 	dgemv_ (&notrans, &m, &n, &done, K, &m, b, &ione, &dzero, y1, &ione);
 
 	// y2 = Ci * K * b
-	double	*y2 = new double [m];
 	char	uplo = 'U';
 	dsymv_ (&uplo, &m, &done, Ci, &m, y1, &ione, &dzero, y2, &ione);
-	delete [] y1;
 
 	// zeta = - (1. / coef) * K.T * Ci * K * b
 	double	scale = - 1. / coef;
 	dgemv_ (&trans, &m, &n, &scale, K, &m, y2, &ione, &dzero, zeta, &ione);
-	delete [] y2;
 
 	// zeta = b - (1. / coef) * K.T * Ci * K * b
 	daxpy_ (&n, &done, b, &ione, zeta, &ione);

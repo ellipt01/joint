@@ -204,6 +204,26 @@ mADMM::initialize_variables ()
 		v_ = new double [n_];
 		for (size_t i = 0; i < n_; i++) v_[i] = 0.;
 	}
+
+	// bx = X^T * f + mu * (s + u)[1:M]
+	if (bx_ == NULL) bx_ = new double [size2_];
+	if (cx_ == NULL) {
+		cx_ = new double [size2_];
+		dgemv_ (&trans, &size1_mag_, &size2_, &done, X_, &size1_mag_, f_, &ione, &dzero, cx_, &ione);
+	}
+
+	// by = Y^T * g + mu * (s + u)[M+1:2M]
+	if (by_ == NULL) by_ = new double [size2_];
+	if (cy_ == NULL) {
+		cy_ = new double [size2_];
+		dgemv_ (&trans, &size1_grv_, &size2_, &done, Y_, &size1_grv_, g_, &ione, &dzero, cy_, &ione);
+	}
+
+	if (tmp1_mag_ == NULL) tmp1_mag_ = new double [size1_mag_];
+	if (tmp2_mag_ == NULL) tmp2_mag_ = new double [size1_mag_];
+	if (tmp1_grv_ == NULL) tmp1_grv_ = new double [size1_grv_];
+	if (tmp2_grv_ == NULL) tmp2_grv_ = new double [size1_grv_];
+	if (tmp3_ == NULL) tmp3_ = new double [n_];
 }
 
 // Updates the right-hand side vectors bx and by for the zeta-update step.
@@ -211,27 +231,16 @@ mADMM::initialize_variables ()
 void
 mADMM::update_bx ()
 {
-	// bx = X^T * f + mu * (s + u)[1:M]
-	if (bx_ == NULL) bx_ = new double [size2_];
-	if (cx_ == NULL) {
-		cx_ = new double [size2_];
-		dgemv_ (&trans, &size1_mag_, &size2_, &done, X_, &size1_mag_, f_, &ione, &dzero, cx_, &ione);
-	}
 	for (size_t i = 0; i < size2_; i++) bx_[i] = cx_[i] + mu_ * (s_[i] + u_[i]);
 	if (apply_lower_bound_) {
 		for (size_t i = 0; i < size2_; i++) bx_[i] += nu_ * (t_[i] + v_[i]);
 	}
 }
 
+// bx = Y^T * g + mu * (s + u)[M:2*M] + nu * (t + v)[M:2M]
 void
 mADMM::update_by ()
 {
-	// by = Y^T * g + mu * (s + u)[M+1:2M]
-	if (by_ == NULL) by_ = new double [size2_];
-	if (cy_ == NULL) {
-		cy_ = new double [size2_];
-		dgemv_ (&trans, &size1_grv_, &size2_, &done, Y_, &size1_grv_, g_, &ione, &dzero, cy_, &ione);
-	}
 	for (size_t i = 0; i < size2_; i++) by_[i] = cy_[i] + mu_ * (s_[i + size2_] + u_[i + size2_]);
 	if (apply_lower_bound_) {
 		for (size_t i = 0; i < size2_; i++) by_[i] += nu_ * (t_[i + size2_] + v_[i + size2_]);
@@ -264,9 +273,9 @@ mADMM::update_zeta ()
 		delete [] rho_;
 	}
 	// beta = (bx - X^T * CXi * X * bx) / (mu + nu)
-	beta_ = eval_beta_using_SMW (mu_ + nu_, size1_mag_, size2_, X_, CXi_, bx_);
+	beta_ = update_beta_using_SMW (mu_ + nu_, size1_mag_, size2_, X_, CXi_, bx_, tmp1_mag_, tmp2_mag_);
 	// rho  = (by - Y^T * CYi * Y * by) / (mu + nu)
-	rho_  = eval_rho_using_SMW (mu_ + nu_, size1_grv_, size2_, Y_, CYi_, by_);
+	rho_  = update_rho_using_SMW (mu_ + nu_, size1_grv_, size2_, Y_, CYi_, by_, tmp1_grv_, tmp2_grv_);
 }
 
 // Updates the slack variable s via group soft-thresholding.
@@ -377,23 +386,21 @@ mADMM::get_density ()
 double
 mADMM::eval_residuals ()
 {
-	double	*dt = new double [n_];
-	double	*dz = new double [n_];
-
 #pragma omp parallel for
 	for (size_t j = 0; j < size2_; j++) {
 		// Primal residual term: dt = s - zeta
-		dt[j] = s_[j] - beta_[j];
-		dt[j + size2_] = s_[j + size2_] - rho_[j];
-		// Dual residual term: dz = mu * (zeta - zeta_prev)
-		dz[j] = mu_ * (beta_[j] - beta_prev_[j]);
-		dz[j + size2_] = mu_ * (rho_[j] - rho_prev_[j]);
+		tmp3_[j] = s_[j] - beta_[j];
+		tmp3_[j + size2_] = s_[j + size2_] - rho_[j];
 	}
+	double	dr1 = dnrm2_ (&n_, tmp3_, &ione) / sqrt ((double) n_);
 
-	double	dr1 = dnrm2_ (&n_, dt, &ione) / sqrt ((double) n_);
-	delete [] dt;
-	double	dr2 = dnrm2_ (&n_, dz, &ione) / sqrt ((double) n_);
-	delete [] dz;
+#pragma omp parallel for
+	for (size_t j = 0; j < size2_; j++) {
+		// Dual residual term: dz = mu * (zeta - zeta_prev)
+		tmp3_[j] = mu_ * (beta_[j] - beta_prev_[j]);
+		tmp3_[j + size2_] = mu_ * (rho_[j] - rho_prev_[j]);
+	}
+	double	dr2 = dnrm2_ (&n_, tmp3_, &ione) / sqrt ((double) n_);
 
 	return (dr1 >= dr2) ? dr1 : dr2;
 }
@@ -410,19 +417,19 @@ mADMM::compute_Ci ()
 }
 
 // Computes beta using the SMW identity.
-// This is a wrapper for the generic eval_zeta_using_SMW function.
+// This is a wrapper for the generic update_zeta_using_SMW function.
 double *
-mADMM::eval_beta_using_SMW (double coef, size_t m, size_t n, double *X, double *CXi, double *bx)
+mADMM::update_beta_using_SMW (double coef, size_t m, size_t n, double *X, double *CXi, double *bx, double *tmp1, double *tmp2)
 {
-	return eval_zeta_using_SMW (coef, m, n, X, CXi, bx);
+	return update_zeta_using_SMW (coef, m, n, X, CXi, bx, tmp1, tmp2);
 }
 
 // Computes rho using the SMW identity.
-// This is a wrapper for the generic eval_zeta_using_SMW function.
+// This is a wrapper for the generic update_zeta_using_SMW function.
 double *
-mADMM::eval_rho_using_SMW (double coef, size_t m, size_t n, double *Y, double *CYi, double *by)
+mADMM::update_rho_using_SMW (double coef, size_t m, size_t n, double *Y, double *CYi, double *by, double *tmp1, double *tmp2)
 {
-	return eval_zeta_using_SMW (coef, m, n, Y, CYi, by);
+	return update_zeta_using_SMW (coef, m, n, Y, CYi, by, tmp1, tmp2);
 }
 
 // Soft-thresholding operator: S(x, l) = max(x - l, 0).

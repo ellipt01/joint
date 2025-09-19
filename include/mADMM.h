@@ -87,6 +87,12 @@ class mADMM : public ADMM {
 
 	double	residual_ = 0.;
 
+	// Temporal vectors used to update the beta and rho based on the SMW formula.
+	double	*tmp1_mag_ = NULL;
+	double	*tmp2_mag_ = NULL;
+	double	*tmp1_grv_ = NULL;
+	double	*tmp2_grv_ = NULL;
+
 public:
 	mADMM () { }
 	mADMM (double lambda1, double lambda2, double mu);
@@ -128,9 +134,9 @@ protected:
 
 	void		compute_Ci ();  // Computes the intermediate matrices CXi and CYi.
 	// Computes the beta update step using the Sherman-Morrison-Woodbury formula.
-	double	*eval_beta_using_SMW (double coef, size_t m, size_t n, double *X, double *CXi, double *bx);
+	double	*update_beta_using_SMW (double coef, size_t m, size_t n, double *X, double *CXi, double *bx, double *y1, double *y2);
 	// Computes the rho update step using the Sherman-Morrison-Woodbury formula.
-	double	*eval_rho_using_SMW (double coef, size_t m, size_t n, double *Y, double *CYi, double *by);
+	double	*update_rho_using_SMW (double coef, size_t m, size_t n, double *Y, double *CYi, double *by, double *y1, double *y2);
 
 	// Applies the soft-thresholding operator for the L2 + Group Lasso penalty.
 	double	soft_threshold (double gamma, double lambda);
