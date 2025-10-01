@@ -34,9 +34,9 @@ public:
 	~Kernel ();
 
 	// Sets the model space dimensions and creates the grid.
-	void		setRange (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz, const double ll = 0.);
+	void		setRange (size_t nx, size_t ny, size_t nz, const double *xx, const double *yy, const double *zz, const double ll = 0.);
 	// Sets the surface topography for the model grid.
-	void		setSurface (double *zsurf) { grid_set_surface (grd_, zsurf); }
+	void		setSurface (const double *zsurf) { grid_set_surface (grd_, zsurf); }
 	// Sets the observed measurement data.
 	void		setData (data_array *array);
 
@@ -63,7 +63,7 @@ class MagKernel : public Kernel
 public:
 	MagKernel (double inc, double dec);
 	MagKernel (double exf_inc, double exf_dec, double mgz_inc, double mgz_dec);
-	double	*get ();
+	double	*get () override;
 };
 
 /***
@@ -75,7 +75,7 @@ class GravKernel : public Kernel
 
 public:
 	GravKernel ();
-	double	*get ();
+	double	*get () override;
 
 };
 

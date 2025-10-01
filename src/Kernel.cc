@@ -14,7 +14,7 @@ Kernel::~Kernel ()
 
 // Sets the model space dimensions and creates the grid.
 void
-Kernel::setRange (size_t nx, size_t ny, size_t nz, double *xx, double *yy, double *zz, const double ll)
+Kernel::setRange (size_t nx, size_t ny, size_t nz, const double *xx, const double *yy, const double *zz, const double ll)
 {
 	grd_ = grid_new (nx, ny, nz, xx, yy, zz);
 	n_ = grd_->n;
@@ -58,10 +58,10 @@ MagKernel::get ()
 	if (mgz_ == NULL)
 		throw std::runtime_error ("Magnetization direction has not been set.");
 
-	if (K_ != NULL) delete [] K_;
-	K_ = new double [m_ * n_];
-	kernel_matrix_set (K_, data_, grd_, mgz_, exf_, func_);
-
+	if (K_ == NULL) {
+		K_ = new double [m_ * n_];
+		kernel_matrix_set (K_, data_, grd_, mgz_, exf_, func_);
+	}
 	return K_;
 }
 
@@ -81,10 +81,10 @@ GravKernel::get ()
 	if (grd_ == NULL)
 		throw std::runtime_error ("Model range has not been set. Call setRange() before get().");
 
-	if (K_ != NULL) delete [] K_;
-	K_ = new double [m_ * n_];
-	kernel_matrix_set (K_, data_, grd_, NULL, NULL, func_);
-
+	if (K_ == NULL) {
+		K_ = new double [m_ * n_];
+		kernel_matrix_set (K_, data_, grd_, NULL, NULL, func_);
+	}
 	return K_;
 }
 
