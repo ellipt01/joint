@@ -119,6 +119,7 @@ The program generates the following output files in the working directory:
 * `recover_grv.data`: The recovered gravity anomaly data calculated from the final model.
 
 The format for the `recover_mag.data` and `recover_grv.data` matches the input anomaly data format, allowing for easy comparison.
+
 ---
 ### Settings File (`-s`)
 
