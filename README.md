@@ -21,7 +21,7 @@ We define a Cartesian coordinate system where the $x$-axis is **positive to the 
 Let $\boldsymbol{\beta}$ be the subsurface magnetization distribution, $\boldsymbol{\rho}$ be the density distribution, and $\mathbf{f}$ and $\mathbf{g}$ be the observed magnetic and gravity anomalies, respectively. The objective function to be minimized is:
 
 $$
-L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda_1, \lambda_2)=
+L(***\beta***},\boldsymbol{\rho};\lambda_1, \lambda_2)=
 \frac{1}{2}\left\|
 	\mathbf{f}-\mathbf{K}\boldsymbol{\beta}
 \right\|_2^2
