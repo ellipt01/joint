@@ -18,10 +18,10 @@ In this code, we model the subsurface by dividing it into a grid of small cells.
 
 We define a Cartesian coordinate system where the $x$-axis is **positive to the East**, the $y$-axis is **positive to the North**, and the $z$-axis is **positive upward**.
 
-Let $\boldsymbol{\beta}$ be the subsurface magnetization distribution, $\boldsymbol{\rho}$ be the density distribution, and $\mathbf{f}$ and $\mathbf{g}$ be the observed magnetic and gravity anomalies, respectively. The objective function to be minimized is:
+Let $\mathbf{\beta}$ be the subsurface magnetization distribution, $\boldsymbol{\rho}$ be the density distribution, and $\mathbf{f}$ and $\mathbf{g}$ be the observed magnetic and gravity anomalies, respectively. The objective function to be minimized is:
 
 $$
-L(\boldmath{\beta},\boldsymbol{\rho};\lambda_1, \lambda_2)=
+L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda_1, \lambda_2)=
 \frac{1}{2}\left\|
 	\mathbf{f}-\mathbf{K}\boldsymbol{\beta}
 \right\|_2^2
