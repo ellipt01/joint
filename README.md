@@ -18,7 +18,7 @@ In this code, we model the subsurface by dividing it into a grid of small cells.
 
 We define a Cartesian coordinate system where the $x$-axis is **positive to the East**, the $y$-axis is **positive to the North**, and the $z$-axis is **positive upward**.
 
-Let $\mathbf{\beta}$ be the subsurface magnetization distribution, $\boldsymbol{\rho}$ be the density distribution, and $\mathbf{f}$ and $\mathbf{g}$ be the observed magnetic and gravity anomalies, respectively. The objective function to be minimized is:
+Let $\boldsymbol{\beta}$ be the subsurface magnetization distribution, $\boldsymbol{\rho}$ be the density distribution, and $\mathbf{f}$ and $\mathbf{g}$ be the observed magnetic and gravity anomalies, respectively. The objective function to be minimized is:
 
 $$
 L(\boldsymbol{\beta},\boldsymbol{\rho};\lambda_1, \lambda_2)=
@@ -118,6 +118,7 @@ The program generates the following output files in the working directory:
 * `recover_mag.data`: The recovered magnetic anomaly data calculated from the final model.
 * `recover_grv.data`: The recovered gravity anomaly data calculated from the final model.
 
+The format for the `recover_mag.data` and `recover_grv.data` matches the input anomaly data format, allowing for easy comparison.
 ---
 ### Settings File (`-s`)
 
@@ -150,5 +151,5 @@ The settings file configures the model space, geophysical parameters, and solver
 * **Lower Bounds (ID 6):**
     * `nu` ($\nu$) is the ADMM penalty parameter for the lower-bound constraint. If `nu` is zero or negative, the constraint is disabled.
 * **Solver (ID 4):**
-    * The ADMM solver will stop when the residual falls below the `tolerance` or when 
+    * The ADMM solver will stop when the residual falls below the `tolerance` or when the number of iterations reaches `maxiter`.
 
