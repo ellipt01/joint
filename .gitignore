@@ -1,7 +1,7 @@
 *.o
 *~
 
-*.data
+#*.data
 
 *.aux
 *.log
