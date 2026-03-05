@@ -1,0 +1,28 @@
+
+input file:	synth/input_mag.in,synth/input_grv.in
+lambda1:	1.00e+00
+lambda2:	1.00e-01
+
+number of grid:	40/40/20
+range of the model space:
+  x range:	-2.0000/2.0000
+  y range:	-2.0000/2.0000
+  z range:	0.0000/-2.0000
+exf:inc,dec:	45.0000,-7.0000
+mgz:inc,dec:	45.0000,-7.0000
+tol,maxiter:	1.00e-04,10000
+mu:		1.0000
+number of mag data: 1600
+number of grv data: 1600
+scale = 21.8531
+residual[0] = 8.5611e-02 / 1.0000e-04
+residual[100] = 8.3387e-04 / 1.0000e-04
+residual[200] = 3.8681e-04 / 1.0000e-04
+residual[300] = 2.8389e-04 / 1.0000e-04
+residual[400] = 2.3036e-04 / 1.0000e-04
+residual[500] = 1.9266e-04 / 1.0000e-04
+residual[600] = 1.6319e-04 / 1.0000e-04
+residual[700] = 1.3923e-04 / 1.0000e-04
+residual[800] = 1.1931e-04 / 1.0000e-04
+residual[900] = 1.0267e-04 / 1.0000e-04
+number of iterations = 918 / 10000
