@@ -1,51 +1,63 @@
 include make.config
 
-DESTDIR		= ./bin
-DESTLIBDIR	= ./lib
+DESTDIR         ?= .
 
-LOCALLIBS	= -L./lib -lmgcal
-LIBS		= $(BLAS_LIB) -lm
-CFLAGS		= -O3
-CPPFLAGS	= -I. -I./include $(BLAS_CFLAGS)\
+LOCALLIBS       = -L./mgcal -lmgcal
+LIBS            = $(BLAS_LIB) -lm
+CFLAGS          = -O3
+CXXFLAGS        = -I. -I./include $(BLAS_CFLAGS)\
 			  -I./mgcal/include
 
 COMMON_OBJS	= 
 
-JINV_OBJS	= src/main.o src/Joint.o src/ADMM.o src/mADMM.o src/Kernel.o
+JINV_OBJS       = src/main.o src/Joint.o src/ADMM.o src/mADMM.o src/Kernel.o
 
-OBJS		= $(JINV_OBJS) $(COMMON_OBJS)
+OBJS            = $(JINV_OBJS) $(COMMON_OBJS)
 
 SUBDIRS		= mgcal
 
-PROGRAMS	= jinv
+PROGRAMS        = jinv
+
+# =========================
+# 追加: dependency files
+# =========================
+DEPS = $(OBJS:.o=.d)
 
 all	:		$(SUBDIRS) $(PROGRAMS)
 
-jinv:		$(JINV_OBJS) $(COMMON_OBJS)
-			$(CPP) $(CFLAGS) -o $@ $(JINV_OBJS) $(COMMON_OBJS) $(CPPFLAGS) $(LOCALLIBS) $(LIBS) $(OPENMP_FLG)
+jinv:			$(JINV_OBJS) $(COMMON_OBJS)
+			$(CXX) $(CFLAGS) -o $@ $(JINV_OBJS) $(COMMON_OBJS) $(CXXFLAGS) $(LOCALLIBS) $(LIBS) $(OPENMP_FLG)
 
 $(SUBDIRS):	FORCE
 			$(MAKE) -C $@
 
 FORCE:
 
-.c:
-			$(CC) $(CFLAGS) -o $*.o -c $(CPPFLAGS) $< $(OPENMP_FLG)
+# =========================
+# 変更: -MMD -MP 追加
+# =========================
+.c.o:
+			$(CC) $(CFLAGS) -MMD -MP -o $*.o -c $(CXXFLAGS) $< $(OPENMP_FLG)
 
 .cc.o:
-			$(CPP) $(CFLAGS) -o $*.o -c $(CPPFLAGS) $< $(OPENMP_FLG)
+			$(CXX) $(CFLAGS) -MMD -MP -o $*.o -c $(CXXFLAGS) $< $(OPENMP_FLG)
 
+# =========================
+# install (mkdir修正のみ)
+# =========================
 install:
-			@ if [ ! -d $(DESTDIR) ]; then \
-				mkdir $(DESTDIR) ;\
-			fi
+			@mkdir -p $(DESTDIR)/bin
 			@ for i in $(PROGRAMS) ; do \
-				echo $(INSTALL) -m 755 $$i $(DESTDIR) ;\
-				$(INSTALL) -m 755 $$i $(DESTDIR) ; \
+				echo $(INSTALL) -m 755 $$i $(DESTDIR)/bin ;\
+				$(INSTALL) -m 755 $$i $(DESTDIR)/bin ; \
 			done
-
-clean-objs:
+			@ for i in $(SUBDIRS) ; do \
+				echo $(MAKE) install -C $$i ; \
+				$(MAKE) install -C $$i ; \
+			done
+clean:
 			$(RM) $(OBJS)
+			$(RM) $(DEPS)
 			@ for i in $(OBJS) ; do \
 				$(RM) $$i ; \
 			done
@@ -53,17 +65,20 @@ clean-objs:
 				$(RM) $$i ; \
 			done
 			@ for i in $(SUBDIRS) ; do \
-				$(MAKE) clean-objs -C $$i ; \
+				$(MAKE) clean -C $$i ; \
 			done
 			$(RM) *~ */*~
 
-
-clean:		clean-objs
+uninstall:
 			@ for i in $(PROGRAMS) ; do \
-				$(RM) $(DESTDIR)/$$i ; \
+				$(RM) $(DESTDIR)/bin/$$i ; \
 			done
 			@ for i in $(SUBDIRS) ; do \
-				echo $(MAKE) clean -C $$i ; \
-				$(MAKE) clean -C $$i ; \
+				echo $(MAKE) uninstall -C $$i ; \
+				$(MAKE) uninstall -C $$i ; \
 			done
 
+# =========================
+# 追加: dependency include
+# =========================
+-include $(DEPS)
