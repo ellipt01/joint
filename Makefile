@@ -18,9 +18,6 @@ SUBDIRS		= mgcal
 
 PROGRAMS        = jinv
 
-# =========================
-# 追加: dependency files
-# =========================
 DEPS = $(OBJS:.o=.d)
 
 all	:		$(SUBDIRS) $(PROGRAMS)
@@ -33,18 +30,12 @@ $(SUBDIRS):	FORCE
 
 FORCE:
 
-# =========================
-# 変更: -MMD -MP 追加
-# =========================
 .c.o:
 			$(CC) $(CFLAGS) -MMD -MP -o $*.o -c $(CXXFLAGS) $< $(OPENMP_FLG)
 
 .cc.o:
 			$(CXX) $(CFLAGS) -MMD -MP -o $*.o -c $(CXXFLAGS) $< $(OPENMP_FLG)
 
-# =========================
-# install (mkdir修正のみ)
-# =========================
 install:
 			@mkdir -p $(DESTDIR)/bin
 			@ for i in $(PROGRAMS) ; do \
@@ -78,7 +69,4 @@ uninstall:
 				$(MAKE) uninstall -C $$i ; \
 			done
 
-# =========================
-# 追加: dependency include
-# =========================
 -include $(DEPS)

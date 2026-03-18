@@ -22,9 +22,6 @@ libmgcal.a:     $(LIBSRC_OBJS)
 .c.o:
 			$(CC) $(CFLAGS) -MMD -MP -o $*.o -c $(CXXFLAGS) $< $(OPENMP_FLG)
 
-# =========================
-# 追加: install
-# =========================
 install:        libmgcal.a
 			@mkdir -p $(DESTLIBDIR)
 			$(INSTALL) -m 644 libmgcal.a $(DESTLIBDIR)
